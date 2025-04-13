@@ -149,7 +149,6 @@ def get_features(stock):
 
     # Calculate all features that depend on the availability of outstanding shares
     if outstanding_shares:
-
         (
             vol_sum,
             shares_monthly,
@@ -317,7 +316,8 @@ def enrich_stocks_with_features(
             )
             error_message += f"\nStack Trace:\n{traceback.format_exc()}"
             print(error_message)
-            print("-" * 30)
+            print("-" * 100)
+            print("\n \n \n")
 
             failed.append(stock["symbol"])
             continue
