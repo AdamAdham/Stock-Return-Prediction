@@ -1,0 +1,4 @@
+data/stocks/raw/*
+data/stocks/processed/*
+.env
+venv
