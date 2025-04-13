@@ -6,6 +6,10 @@ While being in the root directory, run this to have all imports
 python -m src.trial
 ```
 
+# Data
+
+Explain each stages dict structure
+
 # Feature engineering
 
 These functions can be combined to reduce the number of passes. However, doing so will decrease code readability. If performance is a priority, consider modifying the functions.

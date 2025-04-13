@@ -227,7 +227,10 @@ def get_features(stock):
 
 
 def enrich_stocks_with_features(
-    start_index=0, end_index=-1, input_directory=RAW_DIR, ouput_directory=PROCESSED_DIR
+    start_index=0,
+    end_index=None,
+    input_directory=RAW_DIR,
+    ouput_directory=PROCESSED_DIR,
 ):
     """
     Enriches stock data with statistical features, industry momentum, and market returns.
@@ -243,7 +246,7 @@ def enrich_stocks_with_features(
     start_index : int, optional
         Index to start processing stocks from. Defaults to 0.
     end_index : int, optional
-        Index to stop processing stocks at (exclusive). Defaults to -1 (process all remaining stocks).
+        Index to stop processing stocks at (exclusive). Defaults to None (process all remaining stocks).
     input_directory : Path or str, optional
         Directory containing raw stock data JSON files. Defaults to `RAW_DIR`.
     ouput_directory : Path or str, optional
@@ -284,7 +287,7 @@ def enrich_stocks_with_features(
     for i, stock in enumerate(stocks):
         if i < start_index:
             continue  # Skip until we reach start_index
-        if i >= end_index:
+        if end_index is not None and i >= end_index:
             break
         try:
             print(f"Stock {stock['symbol']} , Index {i} started")
@@ -339,7 +342,7 @@ def enrich_stocks_with_aggregate_features(
     indmom,
     market_returns_weekly,
     start_index=0,
-    end_index=-1,
+    end_index=None,
     input_directory=PROCESSED_DIR,
     ouput_directory=PROCESSED_DIR,
 ):
@@ -363,7 +366,7 @@ def enrich_stocks_with_aggregate_features(
     start_index : int, optional
         Index to begin processing stocks from. Defaults to 0.
     end_index : int, optional
-        Index to stop processing stocks at (inclusive). Defaults to -1 (process all).
+        Index to stop processing stocks at (inclusive). Defaults to None (process all).
     input_directory : Path or str, optional
         Directory containing raw stock data JSON files. Defaults to `PROCESSED_DIR`.
     ouput_directory : Path or str, optional
@@ -390,8 +393,8 @@ def enrich_stocks_with_aggregate_features(
     for i, stock in enumerate(stocks):
         if i < start_index:
             continue  # Skip until we reach start_index
-        if i > end_index:
-            return False
+        if end_index is not None and i >= end_index:
+            break  # Stop if index exceeded specified end_index
 
         try:
             subfeatures = stock["subfeatures"]
