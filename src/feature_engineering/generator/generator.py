@@ -115,7 +115,7 @@ def get_features(stock):
     max_ret_current = calculate_maxret_current(prices_daily)
 
     # To store variables that were used in feature calculation, but can be helpful in the future
-    # TODO Remove any that are not usefull
+    # TODO Remove any that are not useful
     subfeatures = {
         "weekly": {},
         "monthly": {},
@@ -250,7 +250,7 @@ def enrich_stocks_with_features(
     start_index=0,
     end_index=None,
     input_directory=RAW_DIR,
-    ouput_directory=PROCESSED_DIR,
+    output_directory=PROCESSED_DIR,
 ):
     """
     Enriches stock data with statistical features, industry momentum, and market returns.
@@ -269,7 +269,7 @@ def enrich_stocks_with_features(
         Index to stop processing stocks at (exclusive). Defaults to None (process all remaining stocks).
     input_directory : Path or str, optional
         Directory containing raw stock data JSON files. Defaults to `RAW_DIR`.
-    ouput_directory : Path or str, optional
+    output_directory : Path or str, optional
         Directory to save enriched stock data. Defaults to `PROCESSED_DIR`.
 
     Returns
@@ -321,7 +321,7 @@ def enrich_stocks_with_features(
             )
 
             # Save stock to disk
-            output_path = ouput_directory / f"{stock['symbol']}.json"
+            output_path = output_directory / f"{stock['symbol']}.json"
             write_json(output_path, enriched_stock)
 
             print(f"Stock {stock['symbol']} , Index {i} saved")
@@ -365,7 +365,7 @@ def enrich_stocks_with_aggregate_features(
     start_index=0,
     end_index=None,
     input_directory=PROCESSED_DIR,
-    ouput_directory=PROCESSED_DIR,
+    output_directory=PROCESSED_DIR,
 ):
     """
     Enhances stock data with aggregate statistical metrics using precomputed market and industry information.
@@ -390,7 +390,7 @@ def enrich_stocks_with_aggregate_features(
         Index to stop processing stocks at (inclusive). Defaults to None (process all).
     input_directory : Path or str, optional
         Directory containing raw stock data JSON files. Defaults to `PROCESSED_DIR`.
-    ouput_directory : Path or str, optional
+    output_directory : Path or str, optional
         Directory to save enriched stock data. Defaults to `PROCESSED_DIR`. (so will overwrite the data)
 
     Returns
@@ -453,7 +453,7 @@ def enrich_stocks_with_aggregate_features(
             stock["features"]["indmom"] = indmom[sic_2]
 
             # Save stock to disk
-            output_path = ouput_directory / f"{stock['symbol']}.json"
+            output_path = output_directory / f"{stock['symbol']}.json"
             write_json(output_path, stock)
             success.append(stock["symbol"])
 

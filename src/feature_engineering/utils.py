@@ -130,7 +130,7 @@ def get_dollar_volume_monthly(prices_daily):
 
         dollar_volume = entry["price"] * entry["volume"]  # Calculate value
 
-        # Check if first occurence of current month
+        # Check if first occurrence of current month
         if month not in dollar_volume_by_month:
             dollar_volume_by_month[month] = {"sum": dollar_volume, "count": 1}
         else:
@@ -445,7 +445,7 @@ def get_rolling_weekly_returns(
     return rolling_weekly_returns
 
 
-# Differnce is the window starts from current month
+# Difference is the window starts from current month
 # month_start = months_sorted[current]
 def get_rolling_weekly_returns_current(
     weeks_sorted,

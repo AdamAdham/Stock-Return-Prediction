@@ -94,7 +94,7 @@ def calculate_zerotrade_current(months_sorted, vol_sum, shares_monthly, zero_tra
 
 # Risk Measures:
 
-# Differnce is the window starts from current month
+# Difference is the window starts from current month
 # month_start = months_sorted[current]
 def get_rolling_weekly_returns_current(months_sorted, month_latest_week, weekly_returns, interval=156, increment=4):
 
