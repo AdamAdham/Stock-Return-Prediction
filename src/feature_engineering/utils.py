@@ -57,7 +57,7 @@ def get_monthly_price(prices_daily):
     -------
     tuple
         A tuple containing:
-        - months (list of str): A list of unique months (formatted as "YYYY-MM") found in the dataset and acts as index to prices_monthly (returned in the same order of prices_daily dates).
+        - months_sorted (list of str): A list of unique months_sorted (formatted as "YYYY-MM") found in the dataset and acts as index to prices_monthly (returned in the same order of prices_daily dates).
         - prices_monthly (dict): A dictionary mapping each month ("YYYY-MM") to its latest available price.
 
     Example
@@ -77,7 +77,7 @@ def get_monthly_price(prices_daily):
     """
 
     prices_monthly = {}
-    months = []
+    months_sorted = []
     seen = set()
 
     # Get latest price of each month
@@ -87,10 +87,10 @@ def get_monthly_price(prices_daily):
 
         if month not in seen:
             seen.add(month)
-            months.append(month)
+            months_sorted.append(month)
             prices_monthly[month] = entry["price"]
 
-    return months, prices_monthly
+    return months_sorted, prices_monthly
 
 
 # Liquidity Variables
@@ -297,6 +297,7 @@ def get_stock_returns_weekly(prices_daily):
     ---------
     tuple
         A tuple containing two dictionaries:
+        - weeks_sorted (list): Sorted list of weeks in "YYYY-WW" format.
         - month_latest_week (dict): A dictionary where keys are month identifiers
           (in the format "YYYY-MM") and values are the last trading week of that month
           (represented as a tuple of year and week number).
@@ -325,20 +326,20 @@ def get_stock_returns_weekly(prices_daily):
 
     # Compute weekly returns
     weekly_returns = {}
-    weeks = list(sorted(weekly_prices.keys(), reverse=True))
+    weeks_sorted = list(sorted(weekly_prices.keys(), reverse=True))
 
-    for i in range(len(weeks) - 1):
-        price_current = weekly_prices[weeks[i]]
-        price_previous = weekly_prices[weeks[i + 1]]
+    for i in range(len(weeks_sorted) - 1):
+        price_current = weekly_prices[weeks_sorted[i]]
+        price_previous = weekly_prices[weeks_sorted[i + 1]]
 
-        weekly_returns[weeks[i]] = calculate_return(
+        weekly_returns[weeks_sorted[i]] = calculate_return(
             price_current, price_previous, round_to=RETURN_ROUND_TO
         )
 
     # Assign None to remaining week
-    weekly_returns[weeks[-1]] = None
+    weekly_returns[weeks_sorted[-1]] = None
 
-    return month_latest_week, weekly_returns
+    return weeks_sorted, month_latest_week, weekly_returns
 
 
 def get_previous_week(year, week, keys):
@@ -371,19 +372,27 @@ def get_previous_week(year, week, keys):
 
 
 def get_rolling_weekly_returns(
-    months, month_latest_week, weekly_returns, interval=156, increment=4
+    weeks_sorted,
+    months_sorted,
+    month_latest_week,
+    weekly_returns,
+    interval=156,
+    increment=4,
 ):
     """
     Compute rolling average of weekly returns for each month over a specified interval.
 
     This function calculates the average of weekly stock returns over a fixed interval
-    (default 156 weeks, approximately 3 years) for each month in the `months` list.
+    (default 156 weeks, approximately 3 years) for each month in the `months_sorted` list.
     The calculation starts from the last trading week prior to each month and rolls backward.
     The function moves forward by a set increment (default 4 weeks) for each new month.
 
     Parameters
     ----------
-    months : list of str
+    weeks_sorted: list
+        Sorted list of weeks in "YYYY-WW" format.
+
+    months_sorted : list of str
         A list of month identifiers in the format "YYYY-MM", sorted in descending order (most recent first).
 
     month_latest_week : dict
@@ -410,26 +419,25 @@ def get_rolling_weekly_returns(
 
     rolling_weekly_returns = {}
 
-    sorted_keys = sorted(weekly_returns.keys(), reverse=True)  # sorts by (year, week)
-    weekly_returns_list = [weekly_returns[k] for k in sorted_keys]
+    weekly_returns_list = [weekly_returns[k] for k in weeks_sorted]
 
     current = 0
-    month_start = months[1]
+    month_start = months_sorted[1]
     week_start = month_latest_week[month_start]
 
     # Get index of the latest week of the month to start which is the previous one since in paper states "prior to month end."
-    start = sorted_keys.index(week_start)
+    start = weeks_sorted.index(week_start)
 
-    while current < len(months):
+    while current < len(months_sorted):
 
         if start + interval < len(weekly_returns_list):
             # Rolling average of the 156 weekly returns
-            rolling_weekly_returns[months[current]] = (
+            rolling_weekly_returns[months_sorted[current]] = (
                 sum(weekly_returns_list[start : start + interval]) / interval
             )
         else:
             # Not enough data
-            rolling_weekly_returns[months[current]] = None
+            rolling_weekly_returns[months_sorted[current]] = None
 
         start += increment
         current += 1
@@ -438,21 +446,29 @@ def get_rolling_weekly_returns(
 
 
 # Differnce is the window starts from current month
-# month_start = months[current]
+# month_start = months_sorted[current]
 def get_rolling_weekly_returns_current(
-    months, month_latest_week, weekly_returns, interval=156, increment=4
+    weeks_sorted,
+    months_sorted,
+    month_latest_week,
+    weekly_returns,
+    interval=156,
+    increment=4,
 ):
     """
     Compute rolling average of weekly returns for each month over a specified interval.
 
     This function calculates the average of weekly stock returns over a fixed interval
-    (default 156 weeks, approximately 3 years) for each month in the `months` list.
+    (default 156 weeks, approximately 3 years) for each month in the `months_sorted` list.
     The calculation starts from the last trading week prior to each month and rolls backward.
     The function moves forward by a set increment (default 4 weeks) for each new month.
 
     Parameters
     ----------
-    months : list of str
+    weeks_sorted: list
+        Sorted list of weeks in "YYYY-WW" format.
+
+    months_sorted : list of str
         A list of month identifiers in the format "YYYY-MM", sorted in descending order (most recent first).
 
     month_latest_week : dict
@@ -478,27 +494,25 @@ def get_rolling_weekly_returns_current(
     """
 
     rolling_weekly_returns = {}
-
-    sorted_keys = sorted(weekly_returns.keys(), reverse=True)  # sorts by (year, week)
-    weekly_returns_list = [weekly_returns[k] for k in sorted_keys]
+    weekly_returns_list = [weekly_returns[k] for k in weeks_sorted]
 
     current = 0
-    month_start = months[current]
+    month_start = months_sorted[current]
     week_start = month_latest_week[month_start]
 
     # Get index of the latest week of the month to start which is the previous one since in paper states "prior to month end."
-    start = sorted_keys.index(week_start)
+    start = weeks_sorted.index(week_start)
 
-    while current < len(months):
+    while current < len(months_sorted):
 
         if start + interval < len(weekly_returns_list):
             # Rolling average of the 156 weekly returns
-            rolling_weekly_returns[months[current]] = (
+            rolling_weekly_returns[months_sorted[current]] = (
                 sum(weekly_returns_list[start : start + interval]) / interval
             )
         else:
             # Not enough data
-            rolling_weekly_returns[months[current]] = None
+            rolling_weekly_returns[months_sorted[current]] = None
 
         start += increment
         current += 1
@@ -523,7 +537,7 @@ def get_rolling_market_returns(stocks):
 
     Returns
     dict
-        A dictionary where keys are months (str in "YYYY-MM" format) and values are the
+        A dictionary where keys are months_sorted (str in "YYYY-MM" format) and values are the
         average of 3-year rolling weekly returns across all stocks for that month.
     """
 

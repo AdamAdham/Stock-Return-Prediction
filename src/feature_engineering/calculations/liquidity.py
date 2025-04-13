@@ -7,17 +7,17 @@ from src.feature_engineering.utils import calculate_return
 from src.config.settings import RETURN_ROUND_TO
 
 
-def calculate_turn(months, vol_monthly, shares_monthly):
+def calculate_turn(months_sorted, vol_monthly, shares_monthly):
     """
     Calculate the 3-month rolling share turnover ratio for each month.
 
     Share turnover is defined as the average trading volume over a period
     divided by the number of outstanding shares. This function computes
-    the turnover over a 3-month rolling window, starting from each month in `months`.
+    the turnover over a 3-month rolling window, starting from each month in `months_sorted`.
 
     Parameters
     ----------
-    months : list of str
+    months_sorted : list of str
         A list of month identifiers in the format "YYYY-MM", ordered from the most recent to the oldest.
 
     vol_monthly : dict
@@ -38,20 +38,20 @@ def calculate_turn(months, vol_monthly, shares_monthly):
 
     # Calculate the share turnover for each month
     result = {}
-    for i in range(len(months) - 2):
+    for i in range(len(months_sorted) - 2):
         avg_volume = (
-            vol_monthly[months[i]]
-            + vol_monthly[months[i + 1]]
-            + vol_monthly[months[i + 2]]
+            vol_monthly[months_sorted[i]]
+            + vol_monthly[months_sorted[i + 1]]
+            + vol_monthly[months_sorted[i + 2]]
         ) / 3
-        share = shares_monthly[months[i]]
-        result[months[i]] = (
+        share = shares_monthly[months_sorted[i]]
+        result[months_sorted[i]] = (
             avg_volume / share if share != 0 else None
         )  # Prevent division by zero
 
-    # Assign None to remaining months
-    result[months[-2]] = None
-    result[months[-1]] = None
+    # Assign None to remaining months_sorted
+    result[months_sorted[-2]] = None
+    result[months_sorted[-1]] = None
     return result
 
 
@@ -106,7 +106,7 @@ def calculate_std_turn(prices_daily, shares):
     return std_turn_per_month
 
 
-def calculate_mve(months, market_cap_monthly):
+def calculate_mve(months_sorted, market_cap_monthly):
     """
     Calculate the monthly Market Value of Equity (MVE) using the natural logarithm
     of the market capitalization from the previous month.
@@ -116,7 +116,7 @@ def calculate_mve(months, market_cap_monthly):
 
     Parameters
     ----------
-    months : list of str
+    months_sorted : list of str
         A list of month identifiers in the format "YYYY-MM", ordered from most recent to oldest.
 
     market_cap_monthly : dict
@@ -131,18 +131,18 @@ def calculate_mve(months, market_cap_monthly):
         from the previous month.
     """
     mve_per_month = {}
-    for i in range(len(months) - 1):
-        month = months[i]  # Get current month
+    for i in range(len(months_sorted) - 1):
+        month = months_sorted[i]  # Get current month
         market_cap = market_cap_monthly[
-            months[i + 1]
+            months_sorted[i + 1]
         ]  # Get the market cap of the previous month
 
         if month not in mve_per_month:
             # Store the natural log of the market cap
             mve_per_month[month] = np.log(market_cap)
 
-    # Assign None to remaining months
-    mve_per_month[months[-1]] = None
+    # Assign None to remaining months_sorted
+    mve_per_month[months_sorted[-1]] = None
 
     return mve_per_month
 
@@ -176,16 +176,16 @@ def calculate_mve_current(market_caps_monthly):
     return mve
 
 
-def calculate_dolvol(months, dollar_volume_monthly):
+def calculate_dolvol(months_sorted, dollar_volume_monthly):
     """
     Calculates the Dollar Volume (dolvol) factor for each month using pre-aggregated monthly dollar volume data.
 
     The dolvol factor is defined as the natural logarithm of the average daily dollar volume
-    (price x volume) from two months prior to the current month.
+    (price x volume) from two months_sorted prior to the current month.
 
     Parameters
     ----------
-    months : list of str
+    months_sorted : list of str
         A list of month identifiers in "YYYY-MM" format, sorted from latest to oldest.
     dollar_volume_monthly : dict
         A dictionary where each key is a month ("YYYY-MM") and each value is another dictionary with:
@@ -196,20 +196,20 @@ def calculate_dolvol(months, dollar_volume_monthly):
     -------
     dict
         A dictionary where each key is a month ("YYYY-MM") and the value is the calculated
-        dolvol (log of average daily dollar volume from two months earlier). If data is
+        dolvol (log of average daily dollar volume from two months_sorted earlier). If data is
         insufficient, the value is set to None.
 
     Notes
     -----
-    - Assumes `months` is sorted from most recent to oldest.
-    - Requires at least two months of lookback data to compute dolvol for a given month.
+    - Assumes `months_sorted` is sorted from most recent to oldest.
+    - Requires at least two months_sorted of lookback data to compute dolvol for a given month.
     """
 
-    # For each month t get the sum and count for month t+2 which is the 2 months prior current month t
+    # For each month t get the sum and count for month t+2 which is the 2 months_sorted prior current month t
     dolvol_monthly = {}
-    for i in range(len(months) - 2):
-        curr_month = months[i]
-        month_2 = months[i + 2]
+    for i in range(len(months_sorted) - 2):
+        curr_month = months_sorted[i]
+        month_2 = months_sorted[i + 2]
 
         avg_dv = (
             dollar_volume_monthly[month_2]["sum"]
@@ -217,25 +217,25 @@ def calculate_dolvol(months, dollar_volume_monthly):
         )
         dolvol_monthly[curr_month] = np.log(avg_dv)
 
-    # Make all months that cannot be calculated to None
-    for i in range(len(months) - 2, len(months)):
-        dolvol_monthly[months[i]] = None
+    # Make all months_sorted that cannot be calculated to None
+    for i in range(len(months_sorted) - 2, len(months_sorted)):
+        dolvol_monthly[months_sorted[i]] = None
 
     return dolvol_monthly
 
 
 # Difference is we get the dolvol of current month
 # avg_dv = dollar_volume_monthly[curr_month]["sum"] / dollar_volume_monthly[curr_month]["count"]
-def calculate_dolvol_current(months, dollar_volume_monthly):
+def calculate_dolvol_current(months_sorted, dollar_volume_monthly):
     """
     Calculates the Dollar Volume (dolvol) factor for each month using pre-aggregated monthly dollar volume data.
 
     The dolvol factor is defined as the natural logarithm of the average daily dollar volume
-    (price x volume) from two months prior to the current month.
+    (price x volume) from two months_sorted prior to the current month.
 
     Parameters
     ----------
-    months : list of str
+    months_sorted : list of str
         A list of month identifiers in "YYYY-MM" format, sorted from latest to oldest.
     dollar_volume_monthly : dict
         A dictionary where each key is a month ("YYYY-MM") and each value is another dictionary with:
@@ -250,13 +250,13 @@ def calculate_dolvol_current(months, dollar_volume_monthly):
 
     Notes
     -----
-    - Assumes `months` is sorted from most recent to oldest.
+    - Assumes `months_sorted` is sorted from most recent to oldest.
     """
 
-    # For each month t get the sum and count for month t+2 which is the 2 months prior current month t
+    # For each month t get the sum and count for month t+2 which is the 2 months_sorted prior current month t
     dolvol_monthly = {}
-    for i in range(len(months)):
-        curr_month = months[i]
+    for i in range(len(months_sorted)):
+        curr_month = months_sorted[i]
 
         # Calculate the natural log of the average
         avg_dv = (
@@ -360,7 +360,7 @@ def calculate_ill(prices_daily):
 
 
 def calculate_zerotrade(
-    months, vol_sum, shares_monthly, zero_trading_days, trading_days_count
+    months_sorted, vol_sum, shares_monthly, zero_trading_days, trading_days_count
 ):
     """
     Calculate the turnover-adjusted number of zero trading days for each month.
@@ -380,8 +380,8 @@ def calculate_zerotrade(
 
     Parameters
     ----------
-    months : list of str
-        An ordered list of months (e.g., ["2024-01", "2024-02", ...]).
+    months_sorted : list of str
+        An ordered list of months_sorted (e.g., ["2024-01", "2024-02", ...]).
     vol_sum : dict
         Dictionary mapping each month (str) to the total trading volume.
     shares_monthly : dict
@@ -399,8 +399,8 @@ def calculate_zerotrade(
 
     zerotrade = {}
 
-    for i in range(len(months) - 1):
-        current_month = months[i]
+    for i in range(len(months_sorted) - 1):
+        current_month = months_sorted[i]
         zero_days = zero_trading_days[current_month]
 
         # Get turnover in the prior month
@@ -419,14 +419,14 @@ def calculate_zerotrade(
 
         zerotrade[current_month] = lm
 
-    zerotrade[months[-1]] = None  # Assign None to remaining month
+    zerotrade[months_sorted[-1]] = None  # Assign None to remaining month
     return zerotrade
 
 
 # Difference is we get zerotrade of current month
 # zero_days = zero_trading_days[current_month]
 def calculate_zerotrade_current(
-    months, vol_sum, shares_monthly, zero_trading_days, trading_days_count
+    months_sorted, vol_sum, shares_monthly, zero_trading_days, trading_days_count
 ):
     """
     Calculate the turnover-adjusted number of zero trading days for each month.
@@ -445,8 +445,8 @@ def calculate_zerotrade_current(
 
     Parameters
     ----------
-    months : list of str
-        An ordered list of months (e.g., ["2024-01", "2024-02", ...]).
+    months_sorted : list of str
+        An ordered list of months_sorted (e.g., ["2024-01", "2024-02", ...]).
     vol_sum : dict
         Dictionary mapping each month (str) to the total trading volume.
     shares_monthly : dict
@@ -464,8 +464,8 @@ def calculate_zerotrade_current(
 
     zerotrade = {}
 
-    for i in range(len(months)):
-        current_month = months[i]
+    for i in range(len(months_sorted)):
+        current_month = months_sorted[i]
         zero_days = zero_trading_days[current_month]
 
         # Get turnover in this month

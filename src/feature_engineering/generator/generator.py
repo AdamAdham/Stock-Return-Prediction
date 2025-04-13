@@ -106,9 +106,12 @@ def get_features(stock):
     balance_sheet_quarterly = stock["financials_quarterly"]["balance_sheet"]
     outstanding_shares = stock["outstanding_shares"]
 
-    months, prices_monthly = get_monthly_price(prices_daily)
+    months_sorted, prices_monthly = get_monthly_price(prices_daily)
     dollar_volume_monthly = get_dollar_volume_monthly(prices_daily)
-    month_latest_week, weekly_returns = get_stock_returns_weekly(prices_daily)
+    weeks_sorted, month_latest_week, weekly_returns = get_stock_returns_weekly(
+        prices_daily
+    )
+
     max_ret_current = calculate_maxret_current(prices_daily)
 
     # To store variables that were used in feature calculation, but can be helpful in the future
@@ -122,10 +125,16 @@ def get_features(stock):
     }
     subfeatures["monthly"]["rolling_avg_3y_weekly_returns_by_month"] = (
         get_rolling_weekly_returns(
-            months, month_latest_week, weekly_returns, interval=156, increment=4
+            weeks_sorted,
+            months_sorted,
+            month_latest_week,
+            weekly_returns,
+            interval=156,
+            increment=4,
         )
     )
-    subfeatures["lists"]["months"] = months
+    subfeatures["lists"]["months_sorted"] = months_sorted
+    subfeatures["lists"]["weeks_sorted"] = weeks_sorted
     subfeatures["monthly"]["prices_monthly"] = prices_monthly
     subfeatures["monthly"]["dollar_volume_monthly"] = dollar_volume_monthly
     subfeatures["monthly"]["month_latest_week"] = month_latest_week
@@ -134,17 +143,17 @@ def get_features(stock):
     # Feature Engineering
     features = {"weekly": {}, "monthly": {}, "quarterly": {}, "annual": {}}
 
-    features["monthly"]["mom1m"] = calculate_mom1m(months, prices_monthly)
-    features["monthly"]["mom12m"] = calculate_mom12m(months, prices_monthly)
+    features["monthly"]["mom1m"] = calculate_mom1m(months_sorted, prices_monthly)
+    features["monthly"]["mom12m"] = calculate_mom12m(months_sorted, prices_monthly)
     features["monthly"]["mom12m_current"] = calculate_mom12m_current(
-        months, prices_monthly
+        months_sorted, prices_monthly
     )
-    features["monthly"]["mom36m"] = calculate_mom36m(months, prices_monthly)
-    features["monthly"]["chmom"] = calculate_chmom(months, prices_monthly)
+    features["monthly"]["mom36m"] = calculate_mom36m(months_sorted, prices_monthly)
+    features["monthly"]["chmom"] = calculate_chmom(months_sorted, prices_monthly)
     features["monthly"]["chmom_current"] = calculate_chmom_current(
-        months, prices_monthly
+        months_sorted, prices_monthly
     )
-    features["monthly"]["maxret"] = calculate_maxret(months, max_ret_current)
+    features["monthly"]["maxret"] = calculate_maxret(months_sorted, max_ret_current)
     features["monthly"]["maxret_current"] = max_ret_current
 
     # Calculate all features that depend on the availability of outstanding shares
@@ -157,13 +166,23 @@ def get_features(stock):
             _,
         ) = get_volume_shares_statistics(prices_daily, outstanding_shares)
         features["monthly"]["zerotrade"] = calculate_zerotrade(
-            months, vol_sum, shares_monthly, zero_trading_days_count, trading_days_count
+            months_sorted,
+            vol_sum,
+            shares_monthly,
+            zero_trading_days_count,
+            trading_days_count,
         )
         features["monthly"]["zerotrade_current"] = calculate_zerotrade_current(
-            months, vol_sum, shares_monthly, zero_trading_days_count, trading_days_count
+            months_sorted,
+            vol_sum,
+            shares_monthly,
+            zero_trading_days_count,
+            trading_days_count,
         )
 
-        features["monthly"]["turn"] = calculate_turn(months, vol_sum, shares_monthly)
+        features["monthly"]["turn"] = calculate_turn(
+            months_sorted, vol_sum, shares_monthly
+        )
         features["monthly"]["std_turn"] = calculate_std_turn(
             prices_daily, outstanding_shares
         )
@@ -187,7 +206,7 @@ def get_features(stock):
     # Calculate all features that depend on the availability of market cap
     if market_caps:
         market_cap_monthly = get_market_cap_monthly(market_caps)
-        features["monthly"]["mve"] = calculate_mve(months, market_cap_monthly)
+        features["monthly"]["mve"] = calculate_mve(months_sorted, market_cap_monthly)
         features["monthly"]["mve_current"] = calculate_mve_current(market_cap_monthly)
         ep_annual, sp_annual = calculate_ep_sp_annual(
             income_statements_annual, market_caps
@@ -209,9 +228,11 @@ def get_features(stock):
 
         subfeatures["monthly"]["market_cap"] = None
 
-    features["monthly"]["dolvol"] = calculate_dolvol(months, dollar_volume_monthly)
+    features["monthly"]["dolvol"] = calculate_dolvol(
+        months_sorted, dollar_volume_monthly
+    )
     features["monthly"]["dolvol_current"] = calculate_dolvol_current(
-        months, dollar_volume_monthly
+        months_sorted, dollar_volume_monthly
     )
     features["monthly"]["ill"] = calculate_ill(prices_daily)
     features["monthly"]["retvol"] = calculate_retvol(prices_daily)
@@ -322,9 +343,9 @@ def enrich_stocks_with_features(
             failed.append(stock["symbol"])
             continue
 
-    # Get average of all months for each SIC code
-    for sic, months in indmom.items():
-        for month, data in months.items():
+    # Get average of all months_sorted for each SIC code
+    for sic, months_sorted in indmom.items():
+        for month, data in months_sorted.items():
             indmom[sic][month] = data["total"] / data["count"]
 
     # Get average of weekly market returns
@@ -401,7 +422,8 @@ def enrich_stocks_with_aggregate_features(
 
             # Calculate beta and betasq
             beta, betasq = calculate_beta_betasq(
-                subfeatures["monthly"]["months"],
+                subfeatures["lists"]["weeks_sorted"],
+                subfeatures["monthly"]["months_sorted"],
                 subfeatures["monthly"]["month_latest_week"],
                 subfeatures["weekly"]["weekly_returns"],
                 market_returns_weekly,
@@ -411,7 +433,8 @@ def enrich_stocks_with_aggregate_features(
 
             # Calculate idiovol
             idiovol = calculate_idiovol(
-                subfeatures["monthly"]["months"],
+                subfeatures["lists"]["weeks_sorted"],
+                subfeatures["monthly"]["months_sorted"],
                 subfeatures["monthly"]["month_latest_week"],
                 subfeatures["weekly"]["returns"],
                 market_returns_weekly,

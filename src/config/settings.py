@@ -8,6 +8,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "stocks" / "raw"
 PROCESSED_DIR = DATA_DIR / "stocks" / "processed"
+RAW_DIR_TEST = DATA_DIR / "tests" / "raw"
+PROCESSED_DIR_TEST = DATA_DIR / "tests" / "processed"
 REFERENCE_DIR = DATA_DIR / "reference"
 
 STOCKS_STATS_TEST = DATA_DIR / "stocks_stats_test"

@@ -31,7 +31,7 @@ def calculate_retvol(prices_daily):
     -----
     - Assumes that `prices_daily` is sorted in descending order (latest date first).
     - Uses the global variable `return_decimal_approximation` for rounding in the return calculation.
-    - Months with fewer than 2 return entries will still be included, but the standard deviation may be 0 or NaN.
+    - months_sorted with fewer than 2 return entries will still be included, but the standard deviation may be 0 or NaN.
     """
     daily_returns_monthly = defaultdict(list)
 
@@ -68,7 +68,8 @@ def calculate_retvol(prices_daily):
 
 
 def calculate_idiovol(
-    months,
+    weeks_sorted,
+    months_sorted,
     month_latest_week,
     weekly_returns,
     market_weekly_returns,
@@ -82,8 +83,11 @@ def calculate_idiovol(
 
     Parameters
     ----------
-    months
-        A list of strings representing months in "YYYY-MM" format, ordered from most recent to oldest
+    weeks_sorted: list
+        Sorted list of weeks in "YYYY-WW" format.
+
+    months_sorted
+        A list of strings representing months_sorted in "YYYY-MM" format, ordered from most recent to oldest
 
     month_latest_week
         A dictionary mapping each month to its corresponding last week as a (year, week) tuple
@@ -108,25 +112,23 @@ def calculate_idiovol(
 
     idiovol_by_month = {}
 
-    sorted_keys = sorted(weekly_returns.keys(), reverse=True)  # [(year, week)]
-
     # Generate aligned lists of stock and market returns
-    weekly_returns_list = [weekly_returns[k] for k in sorted_keys]
-    market_returns_list = [market_weekly_returns[k] for k in sorted_keys]
+    weekly_returns_list = [weekly_returns[k] for k in weeks_sorted]
+    market_returns_list = [market_weekly_returns[k] for k in weeks_sorted]
 
     month_current_index = 0
-    month_start = months[1]
+    month_start = months_sorted[1]
     week_start = month_latest_week[month_start]
 
     try:
-        week_start = sorted_keys.index(week_start)
+        week_start = weeks_sorted.index(week_start)
     except ValueError:
         print(f"Week {week_start} not found in weekly_returns keys.")
-        return {m: None for m in months}
+        return {m: None for m in months_sorted}
 
-    while month_current_index < len(months):
+    while month_current_index < len(months_sorted):
 
-        if week_start + interval < len(sorted_keys):
+        if week_start + interval < len(weeks_sorted):
             # Get stock and market returns for the interval provided
             stock_window = weekly_returns_list[week_start : week_start + interval]
             market_window = market_returns_list[week_start : week_start + interval]
@@ -137,10 +139,10 @@ def calculate_idiovol(
             ]
             idiovol = (sum(residuals_squared) / interval) ** 0.5
 
-            idiovol_by_month[months[month_current_index]] = idiovol
+            idiovol_by_month[months_sorted[month_current_index]] = idiovol
         else:
             # If not enough data, assign None
-            idiovol_by_month[months[month_current_index]] = None
+            idiovol_by_month[months_sorted[month_current_index]] = None
 
         week_start += increment
         month_current_index += 1
@@ -149,9 +151,10 @@ def calculate_idiovol(
 
 
 # Difference is the window starts from current month
-# month_start = months[month_current_index]
+# month_start = months_sorted[month_current_index]
 def calculate_idiovol_current(
-    months,
+    weeks_sorted,
+    months_sorted,
     month_latest_week,
     weekly_returns,
     market_weekly_returns,
@@ -165,8 +168,11 @@ def calculate_idiovol_current(
 
     Parameters
     ----------
-    months
-        A list of strings representing months in "YYYY-MM" format, ordered from most recent to oldest
+    weeks_sorted: list
+        Sorted list of weeks in "YYYY-WW" format.
+
+    months_sorted
+        A list of strings representing months_sorted in "YYYY-MM" format, ordered from most recent to oldest
 
     month_latest_week
         A dictionary mapping each month to its corresponding last week as a (year, week) tuple
@@ -191,24 +197,22 @@ def calculate_idiovol_current(
 
     idiovol_by_month = {}
 
-    sorted_keys = sorted(weekly_returns.keys(), reverse=True)  # [(year, week)]
-
     # Generate aligned lists of stock and market returns
-    weekly_returns_list = [weekly_returns[k] for k in sorted_keys]
-    market_returns_list = [market_weekly_returns[k] for k in sorted_keys]
+    weekly_returns_list = [weekly_returns[k] for k in weeks_sorted]
+    market_returns_list = [market_weekly_returns[k] for k in weeks_sorted]
 
     month_current_index = 0
-    month_start = months[1]
+    month_start = months_sorted[1]
     week_start = month_latest_week[month_start]
 
     try:
-        week_start = sorted_keys.index(week_start)
+        week_start = weeks_sorted.index(week_start)
     except ValueError:
         print(f"Week {week_start} not found in weekly_returns keys.")
-        return {m: None for m in months}
+        return {m: None for m in months_sorted}
 
-    while month_current_index < len(months):
-        if week_start + interval < len(sorted_keys):
+    while month_current_index < len(months_sorted):
+        if week_start + interval < len(weeks_sorted):
             # Get stock and market returns for the interval provided
             stock_window = weekly_returns_list[week_start : week_start + interval]
             market_window = market_returns_list[week_start : week_start + interval]
@@ -219,10 +223,10 @@ def calculate_idiovol_current(
             ]
             idiovol = (sum(residuals_squared) / interval) ** 0.5
 
-            idiovol_by_month[months[month_current_index]] = idiovol
+            idiovol_by_month[months_sorted[month_current_index]] = idiovol
         else:
             # If not enough data, assign None
-            idiovol_by_month[months[month_current_index]] = None
+            idiovol_by_month[months_sorted[month_current_index]] = None
 
         week_start += increment
         month_current_index += 1
@@ -231,7 +235,8 @@ def calculate_idiovol_current(
 
 
 def calculate_beta_betasq(
-    months,
+    weeks_sorted,
+    months_sorted,
     month_latest_week,
     weekly_returns,
     market_weekly_returns,
@@ -246,7 +251,10 @@ def calculate_beta_betasq(
 
     Parameters
     ----------
-    months : list
+    weeks_sorted: list
+        Sorted list of weeks in "YYYY-WW" format.
+
+    months_sorted : list
         List of month strings (e.g., "YYYY-MM") ordered from most recent to oldest.
 
     month_latest_week : dict
@@ -279,23 +287,22 @@ def calculate_beta_betasq(
     betasq_by_month = {}
 
     # Get a sorted list of the returns rather than the week:returns, for easier access
-    sorted_keys = sorted(weekly_returns.keys(), reverse=True)
-    stock_returns_list = [weekly_returns[k] for k in sorted_keys]
-    market_returns_list = [market_weekly_returns[k] for k in sorted_keys]
+    stock_returns_list = [weekly_returns[k] for k in weeks_sorted]
+    market_returns_list = [market_weekly_returns[k] for k in weeks_sorted]
 
     current = 0
-    month_start = months[1]
+    month_start = months_sorted[1]
     week_start = month_latest_week[month_start]
 
     # Get the week to start from, which is the latest week from the previous month (1) since current is 0
     try:
-        start = sorted_keys.index(week_start)
+        start = weeks_sorted.index(week_start)
     except ValueError:
         print(f"Week {week_start} not found.")
-        return {m: None for m in months}
+        return {m: None for m in months_sorted}
 
-    while current < len(months):
-        if start + interval < len(sorted_keys):
+    while current < len(months_sorted):
+        if start + interval < len(weeks_sorted):
             # Getting the stock and market returns' windows
             stock_window = stock_returns_list[start : start + interval]
             market_window = market_returns_list[start : start + interval]
@@ -316,14 +323,14 @@ def calculate_beta_betasq(
 
                 beta = cov / var if var != 0 else None
 
-                beta_by_month[months[current]] = beta
-                betasq_by_month[months[current]] = beta
+                beta_by_month[months_sorted[current]] = beta
+                betasq_by_month[months_sorted[current]] = beta
             else:
-                beta_by_month[months[current]] = None
-                betasq_by_month[months[current]] = None
+                beta_by_month[months_sorted[current]] = None
+                betasq_by_month[months_sorted[current]] = None
         else:
-            beta_by_month[months[current]] = None
-            betasq_by_month[months[current]] = None
+            beta_by_month[months_sorted[current]] = None
+            betasq_by_month[months_sorted[current]] = None
 
         start += increment
         current += 1
@@ -332,9 +339,10 @@ def calculate_beta_betasq(
 
 
 # Difference is beta and betasq from this month
-# month_start = months[current]
+# month_start = months_sorted[current]
 def calculate_beta_betasq_current(
-    months,
+    weeks_sorted,
+    months_sorted,
     month_latest_week,
     weekly_returns,
     market_weekly_returns,
@@ -349,7 +357,10 @@ def calculate_beta_betasq_current(
 
     Parameters
     ----------
-    months : list
+    weeks_sorted: list
+        Sorted list of weeks in "YYYY-WW" format.
+
+    months_sorted : list
         List of month strings (e.g., "YYYY-MM") ordered from most recent to oldest.
 
     month_latest_week : dict
@@ -382,23 +393,22 @@ def calculate_beta_betasq_current(
     betasq_by_month = {}
 
     # Get a sorted list of the returns rather than the week:returns, for easier access
-    sorted_keys = sorted(weekly_returns.keys(), reverse=True)
-    stock_returns_list = [weekly_returns[k] for k in sorted_keys]
-    market_returns_list = [market_weekly_returns[k] for k in sorted_keys]
+    stock_returns_list = [weekly_returns[k] for k in weeks_sorted]
+    market_returns_list = [market_weekly_returns[k] for k in weeks_sorted]
 
     current = 0
-    month_start = months[current]
+    month_start = months_sorted[current]
     week_start = month_latest_week[month_start]
 
     # Get the week to start from, which is the latest week from this month
     try:
-        start = sorted_keys.index(week_start)
+        start = weeks_sorted.index(week_start)
     except ValueError:
         print(f"Week {week_start} not found.")
-        return {m: None for m in months}
+        return {m: None for m in months_sorted}
 
-    while current < len(months):
-        if start + interval < len(sorted_keys):
+    while current < len(months_sorted):
+        if start + interval < len(weeks_sorted):
             # Getting the stock and market returns' windows
             stock_window = stock_returns_list[start : start + interval]
             market_window = market_returns_list[start : start + interval]
@@ -419,14 +429,14 @@ def calculate_beta_betasq_current(
 
                 beta = cov / var if var != 0 else None
 
-                beta_by_month[months[current]] = beta
-                betasq_by_month[months[current]] = beta
+                beta_by_month[months_sorted[current]] = beta
+                betasq_by_month[months_sorted[current]] = beta
             else:
-                beta_by_month[months[current]] = None
-                betasq_by_month[months[current]] = None
+                beta_by_month[months_sorted[current]] = None
+                betasq_by_month[months_sorted[current]] = None
         else:
-            beta_by_month[months[current]] = None
-            betasq_by_month[months[current]] = None
+            beta_by_month[months_sorted[current]] = None
+            betasq_by_month[months_sorted[current]] = None
 
         start += increment
         current += 1
