@@ -142,7 +142,9 @@ def get_features(stock):
     # Feature Engineering
     features = {"weekly": {}, "monthly": {}, "quarterly": {}, "annual": {}}
 
-    features["monthly"]["returns_monthly"] = calculate_re
+    features["monthly"]["returns_monthly"] = get_returns_monthly(
+        months_sorted, prices_monthly
+    )
     features["monthly"]["mom1m"] = calculate_mom1m(months_sorted, prices_monthly)
     features["monthly"]["mom12m"] = calculate_mom12m(months_sorted, prices_monthly)
     features["monthly"]["mom12m_current"] = calculate_mom12m_current(
