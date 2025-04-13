@@ -43,7 +43,8 @@ from src.feature_engineering.utils import (
     get_market_cap_monthly,
     get_monthly_price,
     get_rolling_weekly_returns,
-    get_stock_returns_weekly,
+    get_returns_weekly,
+    get_returns_monthly,
     get_volume_shares_statistics,
     handle_market_returns_weekly,
 )
@@ -108,9 +109,7 @@ def get_features(stock):
 
     months_sorted, prices_monthly = get_monthly_price(prices_daily)
     dollar_volume_monthly = get_dollar_volume_monthly(prices_daily)
-    weeks_sorted, month_latest_week, weekly_returns = get_stock_returns_weekly(
-        prices_daily
-    )
+    weeks_sorted, month_latest_week, weekly_returns = get_returns_weekly(prices_daily)
 
     max_ret_current = calculate_maxret_current(prices_daily)
 
@@ -143,6 +142,7 @@ def get_features(stock):
     # Feature Engineering
     features = {"weekly": {}, "monthly": {}, "quarterly": {}, "annual": {}}
 
+    features["monthly"]["returns_monthly"] = calculate_re
     features["monthly"]["mom1m"] = calculate_mom1m(months_sorted, prices_monthly)
     features["monthly"]["mom12m"] = calculate_mom12m(months_sorted, prices_monthly)
     features["monthly"]["mom12m_current"] = calculate_mom12m_current(
