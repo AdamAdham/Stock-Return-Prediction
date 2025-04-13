@@ -6,3 +6,4 @@ data/tests/processed/*
 venv
 notebooks/*
 cspell.json
+**/__pycache__/
