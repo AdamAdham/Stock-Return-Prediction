@@ -1,6 +1,7 @@
 data/stocks/raw/*
 data/stocks/processed/*
+data/tests/raw/*
+data/tests/processed/*
 .env
 venv
 notebooks/*
-data/tests/*
