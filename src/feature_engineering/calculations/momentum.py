@@ -46,8 +46,6 @@ def calculate_momentum(months_sorted, prices_monthly, offset_start, offset_end):
         curr_month = months_sorted[i]
         month_start = months_sorted[i + offset_start]
         month_end = months_sorted[i + offset_end]
-        if offset_start == 0 and offset_end == 11:
-            print(month_start, month_end)
         mom[curr_month] = calculate_return(
             prices_monthly[month_start],
             prices_monthly[month_end],
@@ -66,55 +64,59 @@ def calculate_mom1m(months_sorted, prices_monthly):
     return calculate_momentum(months_sorted, prices_monthly, 0, 1)
 
 
-def calculate_mom12m(months_sorted, prices_monthly):
-    return calculate_momentum(months_sorted, prices_monthly, 1, 12)
-
-
-def calculate_mom12m_current(months_sorted, prices_monthly):
-    return calculate_momentum(months_sorted, prices_monthly, 0, 11)
+def calculate_mom12m(months_sorted, prices_monthly, current=False):
+    if current:
+        # 11 not 12 such that returns are calculated from 2023-09 to 2022-10 (both inclusive) so it will be 12 months since current is included
+        return calculate_momentum(months_sorted, prices_monthly, 0, 11)
+    else:
+        return calculate_momentum(months_sorted, prices_monthly, 1, 12)
 
 
 def calculate_mom36m(months_sorted, prices_monthly):
     return calculate_momentum(months_sorted, prices_monthly, 13, 36)
 
 
-def calculate_chmom(months_sorted, prices_monthly):
+def calculate_chmom(months_sorted, prices_monthly, current=False):
     """
-    Calculates the change in 6-month momentum (chmom) for a stock.
+    Calculates the change in 6-month momentum (CHMOM) for each month.
 
-    This is computed as the difference between the cumulative returns from months_sorted t-6 to t-1 and months_sorted t-12 to t-7.
+    CHMOM is defined as the difference between:
+        - The 6-month momentum from t-6 to t-1 (or t-6 to t if `current=True`)
+        - The 6-month momentum from t-12 to t-7
+
+    The function loops over months in `months_sorted` (from latest to oldest) and for each,
+    computes the change in momentum using the provided monthly closing prices.
 
     Parameters
     ----------
     months_sorted : list of str
-        A list of month identifiers in "YYYY-MM" format, sorted from latest to oldest.
+        A list of months in "YYYY-MM" format, sorted from latest to oldest.
     prices_monthly : dict
         A dictionary mapping each month ("YYYY-MM") to its closing price.
+    current : bool, optional
+        - If True, includes the current month's price in the first return window (t to t-6).
+        - If False (default), uses the month before the current one (t-1 to t-6).
 
     Returns
     -------
     dict
-        A dictionary where keys are months_sorted and values are the calculated change in 6-month momentum percentages.
-
-    Example
-    -------
-    >>> months_sorted = ["2025-04", "2025-03", ..., "2023-04"]
-    >>> prices_monthly = {"2025-04": 200.0, "2025-03": 195.0, ..., "2023-04": 150.0}
-    >>> calculate_chmom(months_sorted, prices_monthly)
-    {'2025-04': 5.5, '2025-03': 6.2, ...}
-
-    Notes
-    -----
-    - The function assumes `months_sorted` is sorted from latest to oldest.
-    - Requires at least 12 months_sorted of historical data for each momentum calculation.
-    - If division by zero occurs, momentum is set to None.
+        A dictionary where:
+            - key (str): A month in "YYYY-MM" format.
+            - value (float or None): The computed change in 6-month momentum for that month.
+              Returns None if prices are missing or division by zero occurs.
     """
 
     chmom_per_month = {}
 
     for i in range(len(months_sorted) - 12):  # Ensure at least 12 months_sorted of data
         curr_month = months_sorted[i]
-        t_1 = months_sorted[i + 1]  # Previous month
+
+        # Start from current month or next month
+        if current:
+            start = curr_month
+        else:
+            start = months_sorted[i + 1]  # Previous month
+
         t_6 = months_sorted[i + 6]  # Month t-6
         t_7 = months_sorted[i + 7]  # Month t-7
         t_12 = months_sorted[i + 12]  # Month t-12
@@ -125,7 +127,78 @@ def calculate_chmom(months_sorted, prices_monthly):
             chmom_per_month[curr_month] = None
         else:
             mom1_6 = calculate_return(
-                prices_monthly[t_1],
+                prices_monthly[start],
+                prices_monthly[t_6],
+                round_to=RETURN_ROUND_TO,
+            )
+            mom7_12 = calculate_return(
+                prices_monthly[t_7],
+                prices_monthly[t_12],
+                round_to=RETURN_ROUND_TO,
+            )
+
+            chmom_per_month[curr_month] = mom1_6 - mom7_12
+
+    # Make all months_sorted that cannot be calculated to None
+    for i in range(len(months_sorted) - 12, len(months_sorted)):
+        curr_month = months_sorted[i]
+        chmom_per_month[curr_month] = None
+
+    return chmom_per_month
+
+
+def calculate_chmom_choice(months_sorted, prices_monthly, current=False):
+    """
+    Calculates the change in 6-month momentum (CHMOM) for each month.
+
+    CHMOM is defined as the difference between:
+        - The 6-month momentum from t-6 to t-1 (or t-6 to t if `current=True`)
+        - The 6-month momentum from t-12 to t-7
+
+    The function loops over months in `months_sorted` (from latest to oldest) and for each,
+    computes the change in momentum using the provided monthly closing prices.
+
+    Parameters
+    ----------
+    months_sorted : list of str
+        A list of months in "YYYY-MM" format, sorted from latest to oldest.
+    prices_monthly : dict
+        A dictionary mapping each month ("YYYY-MM") to its closing price.
+    current : bool, optional
+        If True, includes the current month's price in the first return window (t to t-6).
+        If False (default), uses the month before the current one (t-1 to t-6).
+
+    Returns
+    -------
+    dict
+        A dictionary where:
+            - key (str): A month in "YYYY-MM" format.
+            - value (float or None): The computed change in 6-month momentum for that month.
+              Returns None if prices are missing or division by zero occurs.
+    """
+
+    chmom_per_month = {}
+
+    for i in range(len(months_sorted) - 12):  # Ensure at least 12 months_sorted of data
+        curr_month = months_sorted[i]
+
+        # Start from current month or next month
+        if current:
+            start = curr_month
+        else:
+            start = months_sorted[i + 1]  # Previous month
+
+        t_6 = months_sorted[i + 6]  # Month t-6
+        t_7 = months_sorted[i + 7]  # Month t-7
+        t_12 = months_sorted[i + 12]  # Month t-12
+
+        if (
+            prices_monthly[t_6] == 0 or prices_monthly[t_12] == 0
+        ):  # Prevent division by zero
+            chmom_per_month[curr_month] = None
+        else:
+            mom1_6 = calculate_return(
+                prices_monthly[start],
                 prices_monthly[t_6],
                 round_to=RETURN_ROUND_TO,
             )
