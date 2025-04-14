@@ -240,20 +240,20 @@ def calculate_maxret(months_sorted, max_daily_returns_monthly):
     price in the last month so cannot have returns for that month
     """
 
-    maxret_per_month = {}
+    maxret_monthly = {}
     for i in range(len(months_sorted) - 1):
         month = months_sorted[i]  # Get current month
         maxret = max_daily_returns_monthly[
             months_sorted[i + 1]
         ]  # Get the max returns of the previous month
 
-        if month not in maxret_per_month:
+        if month not in maxret_monthly:
             # Store the natural log of the market cap
-            maxret_per_month[month] = maxret
+            maxret_monthly[month] = maxret
 
-    maxret_per_month[months_sorted[-1]] = None  # Assign None to remaining month
+    maxret_monthly[months_sorted[-1]] = None  # Assign None to remaining month
 
-    return maxret_per_month
+    return maxret_monthly
 
 
 # Difference is we get the max_return from current month. Same as the function "get_max_daily_returns_monthly()"
@@ -285,7 +285,7 @@ def calculate_maxret_current(prices_daily):
     - Each return is associated with the month of the more recent date.
     """
 
-    maxret_per_month = {}
+    maxret_monthly = {}
 
     for i in range(len(prices_daily) - 1):  # Ensure there's a previous day available
         # Get price of current and previous days
@@ -303,11 +303,11 @@ def calculate_maxret_current(prices_daily):
         month_later = f"{date_later.year}-{date_later.month:02d}"
 
         if (
-            month_later not in maxret_per_month
-            or maxret_per_month[month_later] < return_current
+            month_later not in maxret_monthly
+            or maxret_monthly[month_later] < return_current
         ):
             # If this is the first calculated return in this month or the previously highest return is lower than the current calculated return
-            maxret_per_month[month_later] = return_current
+            maxret_monthly[month_later] = return_current
 
     # Check the last entry in the list separately to handle the case where it's the only entry in the month
     last_entry = prices_daily[-1]
@@ -315,10 +315,10 @@ def calculate_maxret_current(prices_daily):
     month_last = f"{date_last.year}-{date_last.month:02d}"
 
     # If the last entry is the only one in the month, set its return as None
-    if month_last not in maxret_per_month:
-        maxret_per_month[month_last] = None
+    if month_last not in maxret_monthly:
+        maxret_monthly[month_last] = None
 
-    return maxret_per_month
+    return maxret_monthly
 
 
 def calculate_indmom(stocks, sic_codes):

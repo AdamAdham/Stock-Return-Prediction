@@ -67,6 +67,47 @@ def calculate_retvol(prices_daily):
     return retvol
 
 
+def calculate_retvol_std(daily_returns_monthly):
+    """
+    Computes the monthly return volatility (retvol) as the standard deviation of daily returns.
+
+    For each month in the input dictionary, this function calculates the standard deviation
+    of daily returns, representing the volatility of stock returns over that month.
+
+    Parameters
+    ----------
+    daily_returns_monthly : dict
+        A dictionary where:
+            - key (str): A month in "YYYY-MM" format.
+            - value (list of float or None): Daily return values for that month.
+              A value of None indicates that no daily returns were computed for that month.
+
+    Returns
+    -------
+    dict
+        A dictionary where:
+            - key (str): The month in "YYYY-MM" format.
+            - value (float or None): The standard deviation of daily returns (volatility) for that month.
+              Returns `None` if there are no valid daily returns for that month.
+
+    Notes
+    -----
+    - Standard deviation is computed using NumPy's `np.std()` function.
+    - Months with `None` as the value in `daily_returns_monthly` or empty return
+    """
+    # Get standard deviation of the monthly daily returns, but if the month has no returns, None is assigned
+    retvol = {
+        key_month: (
+            np.std(daily_returns_monthly[key_month])
+            if daily_returns_monthly[key_month] is not None
+            else None
+        )
+        for key_month in daily_returns_monthly.keys()
+    }
+
+    return retvol
+
+
 def calculate_idiovol(
     weeks_sorted,
     months_sorted,

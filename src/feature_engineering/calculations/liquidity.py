@@ -231,7 +231,7 @@ def calculate_dolvol_current(months_sorted, dollar_volume_monthly):
     Calculates the Dollar Volume (dolvol) factor for each month using pre-aggregated monthly dollar volume data.
 
     The dolvol factor is defined as the natural logarithm of the average daily dollar volume
-    (price x volume) from two months_sorted prior to the current month.
+    (price x volume) from the current month.
 
     Parameters
     ----------
@@ -360,7 +360,11 @@ def calculate_ill(prices_daily):
 
 
 def calculate_zerotrade(
-    months_sorted, vol_sum, shares_monthly, zero_trading_days, trading_days_count
+    months_sorted,
+    vol_sum_monthly,
+    shares_monthly,
+    zero_trading_days,
+    trading_days_count,
 ):
     """
     Calculate the turnover-adjusted number of zero trading days for each month.
@@ -382,7 +386,7 @@ def calculate_zerotrade(
     ----------
     months_sorted : list of str
         An ordered list of months_sorted (e.g., ["2024-01", "2024-02", ...]).
-    vol_sum : dict
+    vol_sum_monthly : dict
         Dictionary mapping each month (str) to the total trading volume.
     shares_monthly : dict
         Dictionary mapping each month (str) to the number of outstanding shares at month-end.
@@ -404,7 +408,7 @@ def calculate_zerotrade(
         zero_days = zero_trading_days[current_month]
 
         # Get turnover in the prior month
-        vol = vol_sum[current_month]
+        vol = vol_sum_monthly[current_month]
         shares = shares_monthly[current_month]
         turnover = vol / shares if shares != 0 else None  # Prevent division by zero
 
@@ -426,12 +430,16 @@ def calculate_zerotrade(
 # Difference is we get zerotrade of current month
 # zero_days = zero_trading_days[current_month]
 def calculate_zerotrade_current(
-    months_sorted, vol_sum, shares_monthly, zero_trading_days, trading_days_count
+    months_sorted,
+    vol_sum_monthly,
+    shares_monthly,
+    zero_trading_days,
+    trading_days_count,
 ):
     """
     Calculate the turnover-adjusted number of zero trading days for each month.
 
-    This function computes a measure called "zerotrade" for each month in the input list..
+    This function computes a measure called "zerotrade" for each month in the input list.
     The measure adjusts the count of zero trading days based on the turnover (volume / shares)
     for that month and normalizes by the typical number of trading days in a month (assumed to be 21).
 
@@ -447,7 +455,7 @@ def calculate_zerotrade_current(
     ----------
     months_sorted : list of str
         An ordered list of months_sorted (e.g., ["2024-01", "2024-02", ...]).
-    vol_sum : dict
+    vol_sum_monthly : dict
         Dictionary mapping each month (str) to the total trading volume.
     shares_monthly : dict
         Dictionary mapping each month (str) to the number of outstanding shares at month-end.
@@ -469,7 +477,7 @@ def calculate_zerotrade_current(
         zero_days = zero_trading_days[current_month]
 
         # Get turnover in this month
-        vol = vol_sum[current_month]
+        vol = vol_sum_monthly[current_month]
         shares = shares_monthly[current_month]
         turnover = vol / shares if shares != 0 else None  # Prevent division by zero
 

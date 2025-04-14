@@ -16,4 +16,5 @@ STOCKS_STATS_TEST = DATA_DIR / "stocks_stats_test"
 STOCKS_STATS_TEST = DATA_DIR / "stocks_test"
 
 # Constant Values
+ENABLE_TIMING = True
 RETURN_ROUND_TO = None

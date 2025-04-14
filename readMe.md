@@ -47,7 +47,7 @@ def calculate_dolvol(months_sorted, dollar_volume_monthly):
 
 def calculate_ill(prices_daily):
 
-def calculate_zerotrade(months_sorted, vol_sum, shares_monthly, zero_trading_days, trading_days_count):
+def calculate_zerotrade(months_sorted, vol_sum_monthly, shares_monthly, zero_trading_days, trading_days_count):
 
 # Risk Measures:
 
@@ -90,7 +90,7 @@ def calculate_dolvol_current(months_sorted, dollar_volume_monthly):
 
 # Difference is we get zerotrade of current month
 # zero_days = zero_trading_days[current_month]
-def calculate_zerotrade_current(months_sorted, vol_sum, shares_monthly, zero_trading_days, trading_days_count):
+def calculate_zerotrade_current(months_sorted, vol_sum_monthly, shares_monthly, zero_trading_days, trading_days_count):
 
 # Risk Measures:
 
