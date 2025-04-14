@@ -71,409 +71,8 @@ def time_call(func, *args, label=None, **kwargs):
         return func(*args, **kwargs)
 
 
-# def get_features(stock):
-#     """
-#     Computes and attaches a set of financial and market-related features for a given stock.
-
-#     This function extracts time-series and financial data from a stock dictionary and
-#     computes various statistical and fundamental indicators. These include momentum metrics,
-#     liquidity measures, valuation ratios, and volatility. The computed features are stored
-#     in a new 'stats' dictionary and appended to the stock data.
-
-#     Parameters
-#     ----------
-#     stock : dict
-#         A dictionary representing a stock, expected to include the following keys:
-#             - 'eod': List of daily end-of-day prices with 'date' and 'price'.
-#             - 'market_cap': Market capitalization data over time.
-#             - 'financials_annual': A dictionary with:
-#                 - 'income_statement': Annual income statement data.
-#                 - 'balance_sheet': Annual balance sheet data.
-
-#     Returns
-#     -------
-#     dict
-#         A copy of the input `stock` dictionary with an added 'stats' key, containing:
-#             - 'mom1m': 1-month momentum.
-#             - 'mom12m': 12-month momentum.
-#             - 'mom36m': 36-month momentum.
-#             - 'chmom': Change in momentum.
-#             - 'maxret': Maximum daily return per month.
-#             - 'mve': Market value of equity (average or latest market cap).
-#             - 'dolvol': Monthly dollar volume.
-#             - 'amihud': Amihud illiquidity measure.
-#             - 'retvol': Return volatility.
-#             - 'ep': Earnings-to-price ratio.
-#             - 'sp': Sales-to-price ratio.
-#             - 'agr': Asset growth rate.
-
-#     Notes
-#     -----
-#     - All assumptions are in each individual function
-#     """
-
-#     stock = stock.copy()
-
-#     # Get all raw data needed for calculating the features
-#     prices_daily = stock["eod"]
-#     market_caps = stock["market_cap"]
-#     income_statements_annual = stock["financials_annual"]["income_statement"]
-#     income_statements_quarterly = stock["financials_quarterly"]["income_statement"]
-#     balance_sheet_annual = stock["financials_annual"]["balance_sheet"]
-#     balance_sheet_quarterly = stock["financials_quarterly"]["balance_sheet"]
-#     outstanding_shares = stock["outstanding_shares"]
-
-#     months_sorted, prices_monthly = get_monthly_price(prices_daily)
-#     dollar_volume_monthly = get_dollar_volume_monthly(prices_daily)
-#     weeks_sorted, month_latest_week, returns_weekly = get_weekly_summary(prices_daily)
-
-#     max_ret_current = calculate_maxret_current(prices_daily)
-
-#     # To store variables that were used in feature calculation, but can be helpful in the future
-#     # TODO Remove any that are not useful
-#     subfeatures = {
-#         "weekly": {},
-#         "monthly": {},
-#         "quarterly": {},
-#         "annual": {},
-#         "lists": {},
-#     }
-#     subfeatures["monthly"]["rolling_avg_3y_returns_weekly_by_month"] = (
-#         get_rolling_returns_weekly(
-#             weeks_sorted,
-#             months_sorted,
-#             month_latest_week,
-#             returns_weekly,
-#             interval=156,
-#             increment=4,
-#         )
-#     )
-#     subfeatures["lists"]["months_sorted"] = months_sorted
-#     subfeatures["lists"]["weeks_sorted"] = weeks_sorted
-#     subfeatures["monthly"]["prices_monthly"] = prices_monthly
-#     subfeatures["monthly"]["dollar_volume_monthly"] = dollar_volume_monthly
-#     subfeatures["monthly"]["month_latest_week"] = month_latest_week
-#     subfeatures["weekly"]["returns_weekly"] = returns_weekly
-
-#     # Feature Engineering
-#     features = {"weekly": {}, "monthly": {}, "quarterly": {}, "annual": {}}
-
-#     features["monthly"]["returns_monthly"] = get_returns_monthly(
-#         months_sorted, prices_monthly
-#     )
-#     features["monthly"]["mom1m"] = calculate_mom1m(months_sorted, prices_monthly)
-#     features["monthly"]["mom12m"] = calculate_mom12m(months_sorted, prices_monthly)
-#     features["monthly"]["mom12m_current"] = calculate_mom12m_current(
-#         months_sorted, prices_monthly
-#     )
-#     features["monthly"]["mom36m"] = calculate_mom36m(months_sorted, prices_monthly)
-#     features["monthly"]["chmom"] = calculate_chmom(months_sorted, prices_monthly)
-#     features["monthly"]["chmom_current"] = calculate_chmom_current(
-#         months_sorted, prices_monthly
-#     )
-#     features["monthly"]["maxret"] = calculate_maxret(months_sorted, max_ret_current)
-#     features["monthly"]["maxret_current"] = max_ret_current
-
-#     # Calculate all features that depend on the availability of outstanding shares
-#     if outstanding_shares:
-#         (
-#             vol_sum_monthly,
-#             shares_monthly,
-#             zero_trading_days_count_monthly,
-#             trading_days_count_monthly,
-#             _,
-#         ) = get_volume_shares_statistics(prices_daily, outstanding_shares)
-#         features["monthly"]["zerotrade"] = calculate_zerotrade(
-#             months_sorted,
-#             vol_sum_monthly,
-#             shares_monthly,
-#             zero_trading_days_count_monthly,
-#             trading_days_count_monthly,
-#         )
-#         features["monthly"]["zerotrade_current"] = calculate_zerotrade_current(
-#             months_sorted,
-#             vol_sum_monthly,
-#             shares_monthly,
-#             zero_trading_days_count_monthly,
-#             trading_days_count_monthly,
-#         )
-
-#         features["monthly"]["turn"] = calculate_turn(
-#             months_sorted, vol_sum_monthly, shares_monthly
-#         )
-#         features["monthly"]["std_turn"] = calculate_std_turn(
-#             prices_daily, outstanding_shares
-#         )
-
-#         # Populate intermediate variables
-#         subfeatures["monthly"]["vol_sum_monthly"] = vol_sum_monthly
-#         subfeatures["monthly"]["shares_monthly"] = shares_monthly
-#         subfeatures["monthly"][
-#             "zero_trading_days_count_monthly"
-#         ] = zero_trading_days_count_monthly
-#         subfeatures["monthly"][
-#             "trading_days_count_monthly"
-#         ] = trading_days_count_monthly
-
-#     else:
-#         features["monthly"]["turn"] = None
-#         features["monthly"]["std_turn"] = None
-#         features["monthly"]["zerotrade"] = None
-
-#         subfeatures["monthly"]["vol_sum_monthly"] = None
-#         subfeatures["monthly"]["shares_monthly"] = None
-#         subfeatures["monthly"]["zero_trading_days_count_monthly"] = None
-#         subfeatures["monthly"]["trading_days_count_monthly"] = None
-
-#     # Calculate all features that depend on the availability of market cap
-#     if market_caps:
-#         market_cap_monthly = get_market_cap_monthly(market_caps)
-#         features["monthly"]["mve"] = calculate_mve(months_sorted, market_cap_monthly)
-#         features["monthly"]["mve_current"] = calculate_mve_current(market_cap_monthly)
-#         ep_annual, sp_annual = calculate_ep_sp_annual(
-#             income_statements_annual, market_caps
-#         )
-
-#         ep_quarterly, sp_quarterly = calculate_ep_sp_quarterly(
-#             income_statements_quarterly, market_caps
-#         )
-#         features["annual"]["ep"] = ep_annual
-#         features["annual"]["sp"] = sp_annual
-#         features["quarterly"]["ep"] = ep_quarterly
-#         features["quarterly"]["sp"] = sp_quarterly
-
-#         subfeatures["monthly"]["market_cap"] = market_cap_monthly
-#     else:
-#         features["monthly"]["mve"] = None
-#         features["annual"]["ep"] = None
-#         features["annual"]["sp"] = None
-
-#         subfeatures["monthly"]["market_cap"] = None
-
-#     features["monthly"]["dolvol"] = calculate_dolvol(
-#         months_sorted, dollar_volume_monthly
-#     )
-#     features["monthly"]["dolvol_current"] = calculate_dolvol_current(
-#         months_sorted, dollar_volume_monthly
-#     )
-#     features["monthly"]["ill"] = calculate_ill(prices_daily)
-#     features["monthly"]["retvol"] = calculate_retvol(prices_daily)
-
-#     features["annual"]["agr"] = calculate_agr_annual(balance_sheet_annual)
-#     features["quarterly"]["agr"] = calculate_agr_quarterly(balance_sheet_quarterly)
-
-#     stock["features"] = features
-#     stock["subfeatures"] = subfeatures
-
-#     return stock
-
-
-# def get_features_performance(stock):
-#     """
-#     Less time taken than the original get_features() function, with same exact output.
-
-#     Computes and attaches a set of financial and market-related features for a given stock.
-
-#     This function extracts time-series and financial data from a stock dictionary and
-#     computes various statistical and fundamental indicators. These include momentum metrics,
-#     liquidity measures, valuation ratios, and volatility. The computed features are stored
-#     in a new 'stats' dictionary and appended to the stock data.
-
-#     Parameters
-#     ----------
-#     stock : dict
-#         A dictionary representing a stock, expected to include the following keys:
-#             - 'eod': List of daily end-of-day prices with 'date' and 'price'.
-#             - 'market_cap': Market capitalization data over time.
-#             - 'financials_annual': A dictionary with:
-#                 - 'income_statement': Annual income statement data.
-#                 - 'balance_sheet': Annual balance sheet data.
-
-#     Returns
-#     -------
-#     dict
-#         A copy of the input `stock` dictionary with an added 'stats' key, containing:
-#             - 'mom1m': 1-month momentum.
-#             - 'mom12m': 12-month momentum.
-#             - 'mom36m': 36-month momentum.
-#             - 'chmom': Change in momentum.
-#             - 'maxret': Maximum daily return per month.
-#             - 'mve': Market value of equity (average or latest market cap).
-#             - 'dolvol': Monthly dollar volume.
-#             - 'amihud': Amihud illiquidity measure.
-#             - 'retvol': Return volatility.
-#             - 'ep': Earnings-to-price ratio.
-#             - 'sp': Sales-to-price ratio.
-#             - 'agr': Asset growth rate.
-
-#     Notes
-#     -----
-#     - All assumptions are in each individual function
-#     """
-
-#     stock = stock.copy()
-
-#     # Get all raw data needed for calculating the features
-#     prices_daily = stock["eod"]
-#     market_caps = stock["market_cap"]
-#     income_statements_annual = stock["financials_annual"]["income_statement"]
-#     income_statements_quarterly = stock["financials_quarterly"]["income_statement"]
-#     balance_sheet_annual = stock["financials_annual"]["balance_sheet"]
-#     balance_sheet_quarterly = stock["financials_quarterly"]["balance_sheet"]
-#     outstanding_shares = stock["outstanding_shares"]
-
-#     (
-#         weeks_sorted,
-#         prices_weekly,
-#         months_sorted,
-#         month_latest_week,
-#         prices_monthly,
-#         dollar_volume_monthly,
-#         vol_sum_monthly,
-#         zero_trading_days_count_monthly,
-#         trading_days_count_monthly,
-#     ) = get_weekly_monthly_summary(prices_daily)
-#     returns_weekly = get_returns_weekly(weeks_sorted, prices_weekly)
-#     max_ret_current = calculate_maxret_current(prices_daily)
-
-#     # To store variables that were used in feature calculation, but can be helpful in the future
-#     # TODO Remove any that are not useful
-#     subfeatures = {
-#         "weekly": {},
-#         "monthly": {},
-#         "quarterly": {},
-#         "annual": {},
-#         "lists": {},
-#     }
-#     subfeatures["monthly"]["rolling_avg_3y_returns_weekly_by_month"] = (
-#         get_rolling_returns_weekly(
-#             weeks_sorted,
-#             months_sorted,
-#             month_latest_week,
-#             returns_weekly,
-#             interval=156,
-#             increment=4,
-#         )
-#     )
-#     subfeatures["lists"]["months_sorted"] = months_sorted
-#     subfeatures["lists"]["weeks_sorted"] = weeks_sorted
-#     subfeatures["monthly"]["prices_monthly"] = prices_monthly
-#     subfeatures["monthly"]["dollar_volume_monthly"] = dollar_volume_monthly
-#     subfeatures["monthly"]["month_latest_week"] = month_latest_week
-#     subfeatures["weekly"]["returns_weekly"] = returns_weekly
-
-#     # Feature Engineering
-#     features = {"weekly": {}, "monthly": {}, "quarterly": {}, "annual": {}}
-
-#     features["monthly"]["returns_monthly"] = get_returns_monthly(
-#         months_sorted, prices_monthly
-#     )
-#     features["monthly"]["mom1m"] = calculate_mom1m(months_sorted, prices_monthly)
-#     features["monthly"]["mom12m"] = calculate_mom12m(months_sorted, prices_monthly)
-#     features["monthly"]["mom12m_current"] = calculate_mom12m_current(
-#         months_sorted, prices_monthly
-#     )
-#     features["monthly"]["mom36m"] = calculate_mom36m(months_sorted, prices_monthly)
-#     features["monthly"]["chmom"] = calculate_chmom(months_sorted, prices_monthly)
-#     features["monthly"]["chmom_current"] = calculate_chmom_current(
-#         months_sorted, prices_monthly
-#     )
-#     features["monthly"]["maxret"] = calculate_maxret(months_sorted, max_ret_current)
-#     features["monthly"]["maxret_current"] = max_ret_current
-
-#     # Calculate all features that depend on the availability of outstanding shares
-#     if outstanding_shares:
-#         shares_monthly = get_shares_monthly(outstanding_shares)
-#         features["monthly"]["zerotrade"] = calculate_zerotrade(
-#             months_sorted,
-#             vol_sum_monthly,
-#             shares_monthly,
-#             zero_trading_days_count_monthly,
-#             trading_days_count_monthly,
-#         )
-#         features["monthly"]["zerotrade_current"] = calculate_zerotrade_current(
-#             months_sorted,
-#             vol_sum_monthly,
-#             shares_monthly,
-#             zero_trading_days_count_monthly,
-#             trading_days_count_monthly,
-#         )
-
-#         features["monthly"]["turn"] = calculate_turn(
-#             months_sorted, vol_sum_monthly, shares_monthly
-#         )
-#         features["monthly"]["std_turn"] = calculate_std_turn(
-#             prices_daily, outstanding_shares
-#         )
-
-#         # Populate intermediate variables
-#         subfeatures["monthly"]["vol_sum_monthly"] = vol_sum_monthly
-#         subfeatures["monthly"]["shares_monthly"] = shares_monthly
-#         subfeatures["monthly"][
-#             "zero_trading_days_count_monthly"
-#         ] = zero_trading_days_count_monthly
-#         subfeatures["monthly"][
-#             "trading_days_count_monthly"
-#         ] = trading_days_count_monthly
-
-#     else:
-#         features["monthly"]["turn"] = None
-#         features["monthly"]["std_turn"] = None
-#         features["monthly"]["zerotrade"] = None
-
-#         subfeatures["monthly"]["vol_sum_monthly"] = None
-#         subfeatures["monthly"]["shares_monthly"] = None
-#         subfeatures["monthly"]["zero_trading_days_count_monthly"] = None
-#         subfeatures["monthly"]["trading_days_count_monthly"] = None
-
-#     # Calculate all features that depend on the availability of market cap
-#     if market_caps:
-#         market_cap_monthly = get_market_cap_monthly(market_caps)
-#         features["monthly"]["mve"] = calculate_mve(months_sorted, market_cap_monthly)
-#         features["monthly"]["mve_current"] = calculate_mve_current(market_cap_monthly)
-#         ep_annual, sp_annual = calculate_ep_sp_annual(
-#             income_statements_annual, market_caps
-#         )
-
-#         ep_quarterly, sp_quarterly = calculate_ep_sp_quarterly(
-#             income_statements_quarterly, market_caps
-#         )
-#         features["annual"]["ep"] = ep_annual
-#         features["annual"]["sp"] = sp_annual
-#         features["quarterly"]["ep"] = ep_quarterly
-#         features["quarterly"]["sp"] = sp_quarterly
-
-#         subfeatures["monthly"]["market_cap"] = market_cap_monthly
-#     else:
-#         features["monthly"]["mve"] = None
-#         features["annual"]["ep"] = None
-#         features["annual"]["sp"] = None
-
-#         subfeatures["monthly"]["market_cap"] = None
-
-#     features["monthly"]["dolvol"] = calculate_dolvol(
-#         months_sorted, dollar_volume_monthly
-#     )
-#     features["monthly"]["dolvol_current"] = calculate_dolvol_current(
-#         months_sorted, dollar_volume_monthly
-#     )
-#     features["monthly"]["ill"] = calculate_ill(prices_daily)
-#     features["monthly"]["retvol"] = calculate_retvol(prices_daily)
-
-#     features["annual"]["agr"] = calculate_agr_annual(balance_sheet_annual)
-#     features["quarterly"]["agr"] = calculate_agr_quarterly(balance_sheet_quarterly)
-
-#     stock["features"] = features
-#     stock["subfeatures"] = subfeatures
-
-#     return stock
-
-
-def get_features_performance(stock):
+def get_features(stock):
     """
-    Less time taken than the original get_features() function, with same exact output.
-    Can add calculate_maxret_current but
-
     Computes and attaches a set of financial and market-related features for a given stock.
 
     This function extracts time-series and financial data from a stock dictionary and
@@ -512,7 +111,6 @@ def get_features_performance(stock):
     -----
     - All assumptions are in each individual function
     """
-
     stock = stock.copy()
 
     # Get all raw data needed for calculating the features
@@ -537,7 +135,6 @@ def get_features_performance(stock):
         max_ret_current,
         daily_returns_monthly,
     ) = time_call(get_weekly_monthly_summary, prices_daily)
-
     returns_weekly = time_call(get_returns_weekly, weeks_sorted, prices_weekly)
 
     # To store variables that were used in feature calculation, but can be helpful in the future
@@ -548,7 +145,6 @@ def get_features_performance(stock):
         "annual": {},
         "lists": {},
     }
-
     subfeatures["monthly"]["rolling_avg_3y_returns_weekly_by_month"] = time_call(
         get_rolling_returns_weekly,
         weeks_sorted,
@@ -593,7 +189,9 @@ def get_features_performance(stock):
 
     # Calculate all features that depend on the availability of outstanding shares
     if outstanding_shares:
+
         shares_monthly = time_call(get_shares_monthly, outstanding_shares)
+
         features["monthly"]["zerotrade"] = time_call(
             calculate_zerotrade,
             months_sorted,
@@ -610,7 +208,6 @@ def get_features_performance(stock):
             zero_trading_days_count_monthly,
             trading_days_count_monthly,
         )
-
         features["monthly"]["turn"] = time_call(
             calculate_turn, months_sorted, vol_sum_monthly, shares_monthly
         )
@@ -645,6 +242,7 @@ def get_features_performance(stock):
         features["monthly"]["mve_current"] = time_call(
             calculate_mve_current, market_cap_monthly
         )
+
         ep_annual, sp_annual = time_call(
             calculate_ep_sp_annual, income_statements_annual, market_caps
         )
@@ -670,176 +268,11 @@ def get_features_performance(stock):
     features["monthly"]["dolvol_current"] = time_call(
         calculate_dolvol_current, months_sorted, dollar_volume_monthly
     )
-    print(daily_returns_monthly)
     features["monthly"]["ill"] = time_call(calculate_ill, prices_daily)
+
     features["monthly"]["retvol"] = time_call(
         calculate_retvol_std, daily_returns_monthly
     )
-
-    features["annual"]["agr"] = time_call(calculate_agr_annual, balance_sheet_annual)
-    features["quarterly"]["agr"] = time_call(
-        calculate_agr_quarterly, balance_sheet_quarterly
-    )
-
-    stock["features"] = features
-    stock["subfeatures"] = subfeatures
-
-    return stock
-
-
-def get_features(stock):
-    stock = stock.copy()
-
-    # Get all raw data needed for calculating the features
-    prices_daily = stock["eod"]
-    market_caps = stock["market_cap"]
-    income_statements_annual = stock["financials_annual"]["income_statement"]
-    income_statements_quarterly = stock["financials_quarterly"]["income_statement"]
-    balance_sheet_annual = stock["financials_annual"]["balance_sheet"]
-    balance_sheet_quarterly = stock["financials_quarterly"]["balance_sheet"]
-    outstanding_shares = stock["outstanding_shares"]
-
-    months_sorted, prices_monthly = time_call(get_monthly_price, prices_daily)
-    dollar_volume_monthly = time_call(get_dollar_volume_monthly, prices_daily)
-    weeks_sorted, month_latest_week, returns_weekly = time_call(
-        get_weekly_summary, prices_daily
-    )
-    max_ret_current = time_call(calculate_maxret_current, prices_daily)
-
-    subfeatures = {
-        "weekly": {},
-        "monthly": {},
-        "quarterly": {},
-        "annual": {},
-        "lists": {},
-    }
-    subfeatures["monthly"]["rolling_avg_3y_returns_weekly_by_month"] = time_call(
-        get_rolling_returns_weekly,
-        weeks_sorted,
-        months_sorted,
-        month_latest_week,
-        returns_weekly,
-        interval=156,
-        increment=4,
-    )
-    subfeatures["lists"]["months_sorted"] = months_sorted
-    subfeatures["lists"]["weeks_sorted"] = weeks_sorted
-    subfeatures["monthly"]["prices_monthly"] = prices_monthly
-    subfeatures["monthly"]["dollar_volume_monthly"] = dollar_volume_monthly
-    subfeatures["monthly"]["month_latest_week"] = month_latest_week
-    subfeatures["weekly"]["returns_weekly"] = returns_weekly
-
-    features = {"weekly": {}, "monthly": {}, "quarterly": {}, "annual": {}}
-
-    features["monthly"]["returns_monthly"] = time_call(
-        get_returns_monthly, months_sorted, prices_monthly
-    )
-    features["monthly"]["mom1m"] = time_call(
-        calculate_mom1m, months_sorted, prices_monthly
-    )
-    features["monthly"]["mom12m"] = time_call(
-        calculate_mom12m, months_sorted, prices_monthly
-    )
-    features["monthly"]["mom12m_current"] = time_call(
-        calculate_mom12m_current, months_sorted, prices_monthly
-    )
-    features["monthly"]["mom36m"] = time_call(
-        calculate_mom36m, months_sorted, prices_monthly
-    )
-    features["monthly"]["chmom"] = time_call(
-        calculate_chmom, months_sorted, prices_monthly
-    )
-    features["monthly"]["chmom_current"] = time_call(
-        calculate_chmom_current, months_sorted, prices_monthly
-    )
-    features["monthly"]["maxret"] = time_call(
-        calculate_maxret, months_sorted, max_ret_current
-    )
-    features["monthly"]["maxret_current"] = max_ret_current
-
-    if outstanding_shares:
-        (
-            vol_sum_monthly,
-            shares_monthly,
-            zero_trading_days_count_monthly,
-            trading_days_count_monthly,
-            _,
-        ) = time_call(get_volume_shares_statistics, prices_daily, outstanding_shares)
-        features["monthly"]["zerotrade"] = time_call(
-            calculate_zerotrade,
-            months_sorted,
-            vol_sum_monthly,
-            shares_monthly,
-            zero_trading_days_count_monthly,
-            trading_days_count_monthly,
-        )
-        features["monthly"]["zerotrade_current"] = time_call(
-            calculate_zerotrade_current,
-            months_sorted,
-            vol_sum_monthly,
-            shares_monthly,
-            zero_trading_days_count_monthly,
-            trading_days_count_monthly,
-        )
-        features["monthly"]["turn"] = time_call(
-            calculate_turn, months_sorted, vol_sum_monthly, shares_monthly
-        )
-        features["monthly"]["std_turn"] = time_call(
-            calculate_std_turn, prices_daily, outstanding_shares
-        )
-
-        subfeatures["monthly"]["vol_sum_monthly"] = vol_sum_monthly
-        subfeatures["monthly"]["shares_monthly"] = shares_monthly
-        subfeatures["monthly"][
-            "zero_trading_days_count_monthly"
-        ] = zero_trading_days_count_monthly
-        subfeatures["monthly"][
-            "trading_days_count_monthly"
-        ] = trading_days_count_monthly
-    else:
-        features["monthly"]["turn"] = None
-        features["monthly"]["std_turn"] = None
-        features["monthly"]["zerotrade"] = None
-        subfeatures["monthly"]["vol_sum_monthly"] = None
-        subfeatures["monthly"]["shares_monthly"] = None
-        subfeatures["monthly"]["zero_trading_days_count_monthly"] = None
-        subfeatures["monthly"]["trading_days_count_monthly"] = None
-
-    if market_caps:
-        market_cap_monthly = time_call(get_market_cap_monthly, market_caps)
-        features["monthly"]["mve"] = time_call(
-            calculate_mve, months_sorted, market_cap_monthly
-        )
-        features["monthly"]["mve_current"] = time_call(
-            calculate_mve_current, market_cap_monthly
-        )
-
-        ep_annual, sp_annual = time_call(
-            calculate_ep_sp_annual, income_statements_annual, market_caps
-        )
-        ep_quarterly, sp_quarterly = time_call(
-            calculate_ep_sp_quarterly, income_statements_quarterly, market_caps
-        )
-
-        features["annual"]["ep"] = ep_annual
-        features["annual"]["sp"] = sp_annual
-        features["quarterly"]["ep"] = ep_quarterly
-        features["quarterly"]["sp"] = sp_quarterly
-        subfeatures["monthly"]["market_cap"] = market_cap_monthly
-    else:
-        features["monthly"]["mve"] = None
-        features["annual"]["ep"] = None
-        features["annual"]["sp"] = None
-        subfeatures["monthly"]["market_cap"] = None
-
-    features["monthly"]["dolvol"] = time_call(
-        calculate_dolvol, months_sorted, dollar_volume_monthly
-    )
-    features["monthly"]["dolvol_current"] = time_call(
-        calculate_dolvol_current, months_sorted, dollar_volume_monthly
-    )
-    features["monthly"]["ill"] = time_call(calculate_ill, prices_daily)
-    features["monthly"]["retvol"] = time_call(calculate_retvol, prices_daily)
 
     features["annual"]["agr"] = time_call(calculate_agr_annual, balance_sheet_annual)
     features["quarterly"]["agr"] = time_call(

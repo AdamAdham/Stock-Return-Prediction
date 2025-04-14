@@ -46,7 +46,8 @@ def calculate_momentum(months_sorted, prices_monthly, offset_start, offset_end):
         curr_month = months_sorted[i]
         month_start = months_sorted[i + offset_start]
         month_end = months_sorted[i + offset_end]
-
+        if offset_start == 0 and offset_end == 11:
+            print(month_start, month_end)
         mom[curr_month] = calculate_return(
             prices_monthly[month_start],
             prices_monthly[month_end],
