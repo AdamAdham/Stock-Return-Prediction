@@ -61,6 +61,7 @@ def calculate_momentum(months_sorted, prices_monthly, offset_start, offset_end):
 
 
 def calculate_mom1m(months_sorted, prices_monthly):
+    # Same as returns_monthly
     return calculate_momentum(months_sorted, prices_monthly, 0, 1)
 
 

@@ -324,44 +324,6 @@ def get_returns_weekly(weeks_sorted, price_weekly):
     return returns_weekly
 
 
-def get_returns_monthly(months_sorted, prices_monthly):
-    """
-    Computes monthly returns based on prices for each month.
-
-    This function calculates the return between each consecutive pair of months
-    using the formula: (price_current - price_previous) / price_previous.
-    It assumes that `months_sorted` is ordered from most recent to oldest,
-    so the return for a given month is calculated relative to the previous month in the list.
-
-    Parameters
-    ----------
-    months_sorted : list of str
-        A list of month identifiers (e.g., "YYYY-MM"), sorted in descending order (latest first).
-    prices_monthly : dict
-        A dictionary mapping month identifiers to prices (e.g., closing prices at month-end).
-
-    Returns
-    -------
-    dict
-        A dictionary where keys are month identifiers and values are the computed monthly returns.
-        The last month in the list is excluded since it has no prior month to compare.
-
-    """
-
-    returns_monthly = {}
-    for i in range(len(months_sorted) - 1):
-        month_current = months_sorted[i]
-        month_previous = months_sorted[i + 1]
-
-        returns_monthly[month_current] = calculate_return(
-            prices_monthly[month_current], prices_monthly[month_previous]
-        )
-    # Assign None to remaining month
-    returns_monthly[months_sorted[-1]] = None
-
-    return returns_monthly
-
-
 # Liquidity Variables
 
 

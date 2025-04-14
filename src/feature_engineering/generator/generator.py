@@ -46,7 +46,6 @@ from src.feature_engineering.utils import (
     get_monthly_price,
     get_rolling_returns_weekly,
     get_weekly_summary,
-    get_returns_monthly,
     get_volume_shares_statistics,
     handle_market_returns_weekly,
     get_weekly_monthly_summary,
@@ -569,9 +568,6 @@ def get_features_performance(stock):
     # Feature Engineering
     features = {"weekly": {}, "monthly": {}, "quarterly": {}, "annual": {}}
 
-    features["monthly"]["returns_monthly"] = time_call(
-        get_returns_monthly, months_sorted, prices_monthly
-    )
     features["monthly"]["mom1m"] = time_call(
         calculate_mom1m, months_sorted, prices_monthly
     )
