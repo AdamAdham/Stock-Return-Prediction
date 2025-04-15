@@ -288,14 +288,14 @@ def enrich_stocks_with_features(
     -------
     tuple
         A tuple containing:
-        - aggregate_stats : dict
-            A dictionary with:
+
+        aggregate_stats: dict
             - 'indmom' : dict
                 A nested dictionary structured as {sic_code: {month: average_industry_momentum}}.
             - 'market_returns' : dict
                 A dictionary structured as {week: average_weekly_market_return}.
-        - status : dict
-            A dictionary with:
+
+        status: dict
             - 'success' : list
                 List of stock symbols that were successfully processed.
             - 'failed' : list

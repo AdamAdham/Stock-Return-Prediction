@@ -188,6 +188,7 @@ def calculate_dolvol(months_sorted, dollar_volume_monthly, current=False):
 
     if current:
         # For each month return the log of the average
+        # No need for None handling since dollar_volume_monthly[month] cannot be None due to implementation at src.feature_engineering.utils.get_weekly_monthly_summary
         return {
             month: np.log(
                 dollar_volume_monthly[month]["sum"]
@@ -238,7 +239,6 @@ def calculate_ill(prices_daily):
 
     Notes
     -----
-    - Assumes the prices_daily list is sorted from most recent to oldest.
     - Skips days with zero dollar volume to avoid division by zero.
     - Uses price from day i and day i+1 to calculate daily return, so the last day in the list is ignored.
     """
@@ -251,8 +251,6 @@ def calculate_ill(prices_daily):
     for i in range(len(prices_daily) - 1):
         today = prices_daily[i]
         yesterday = prices_daily[i + 1]
-
-        # Parse date and month
         date_obj = datetime.strptime(today["date"], "%Y-%m-%d")
         current_month = f"{date_obj.year}-{date_obj.month:02d}"
 
@@ -278,22 +276,20 @@ def calculate_ill(prices_daily):
             ill_count += 1
         else:
             # Store previous month’s average
-            ill_monthly[prev_month] = (
-                ill_sum / ill_count if ill_count != 0 else None
-            )  # Prevent division by zero
+            ill_monthly[prev_month] = ill_sum / ill_count if ill_count != 0 else None
             # Reset counters for the new month
             ill_sum = illiquidity
             ill_count = 1
 
         prev_month = current_month
 
-    # Store last month’s average
+    # Handle last month’s average
     if prev_month is not None:
         ill_monthly[prev_month] = (
             ill_sum / ill_count if ill_count > 0 else None
         )  # Prevent division by zero
 
-    # Check the last entry in the list separately to handle the case where it's the only entry in the month
+    # Handle last entry in the list separately to handle the case where it's the only entry in the month
     last_entry = prices_daily[-1]
     date_last = datetime.strptime(last_entry["date"], "%Y-%m-%d")
     month_last = f"{date_last.year}-{date_last.month:02d}"

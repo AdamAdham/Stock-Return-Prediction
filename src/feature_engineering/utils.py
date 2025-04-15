@@ -233,8 +233,9 @@ def get_weekly_monthly_summary(prices_daily):
         if return_current is not None:
             daily_returns_monthly[month].append(return_current)
         elif month not in daily_returns_monthly:
-            # First value of the month but it is last value of the prices so return is None
-            daily_returns_monthly[month] = 29
+            # First value of the month but it is last value of the prices so return is empty array
+            # since no returns present and so the np.std([]) to be None
+            daily_returns_monthly[month] = []
 
     return (
         weeks_sorted,
@@ -278,9 +279,9 @@ def get_shares_monthly(outstanding_shares):
         month = f"{date.year}-{date.month:02d}"
 
         shares = outstanding_shares[key_date]
-
         if month not in shares_monthly:
             shares_monthly[month] = shares
+    print("get_shares_monthly", "shares_monthly", shares_monthly)
 
     return shares_monthly
 
