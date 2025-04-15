@@ -7,6 +7,7 @@ from src.feature_engineering.utils import calculate_return
 from src.config.settings import RETURN_ROUND_TO
 
 
+# Not needed
 def calculate_retvol(prices_daily):
     """
     Calculates the monthly return volatility (retvol) based on daily price data.
@@ -112,6 +113,7 @@ def calculate_idiovol(
     market_weekly_returns,
     interval=156,
     increment=4,
+    current=False,
 ):
     """
     Calculate idiosyncratic volatility (idiovol) for each month using a 3-year rolling window
@@ -141,90 +143,9 @@ def calculate_idiovol(
     increment
         Step size in weeks between calculations, typically 4 to move month by month (default is 4)
 
-    Returns
-    --------
-    dict
-        A dictionary mapping each month (string) to its corresponding idiovol value (float), or None if insufficient data
-    """
-
-    idiovol_by_month = {}
-
-    # Generate aligned lists of stock and market returns
-    weekly_returns_list = [weekly_returns[k] for k in weeks_sorted]
-    market_returns_list = [market_weekly_returns[k] for k in weeks_sorted]
-
-    month_current_index = 0
-    month_start = months_sorted[1]
-    week_start = month_latest_week[month_start]
-
-    try:
-        week_start = weeks_sorted.index(week_start)
-    except ValueError:
-        print(f"Week {week_start} not found in weekly_returns keys.")
-        return {m: None for m in months_sorted}
-
-    while month_current_index < len(months_sorted):
-
-        if week_start + interval < len(weeks_sorted):
-            # Get stock and market returns for the interval provided
-            stock_window = weekly_returns_list[week_start : week_start + interval]
-            market_window = market_returns_list[week_start : week_start + interval]
-
-            # Compute residuals and standard deviation
-            residuals_squared = [
-                (s - m) ** 2 for s, m in zip(stock_window, market_window)
-            ]
-            idiovol = (sum(residuals_squared) / interval) ** 0.5
-
-            idiovol_by_month[months_sorted[month_current_index]] = idiovol
-        else:
-            # If not enough data, assign None
-            idiovol_by_month[months_sorted[month_current_index]] = None
-
-        week_start += increment
-        month_current_index += 1
-
-    return idiovol_by_month
-
-
-# Difference is the window starts from current month
-# month_start = months_sorted[month_current_index]
-def calculate_idiovol_current(
-    weeks_sorted,
-    months_sorted,
-    month_latest_week,
-    weekly_returns,
-    market_weekly_returns,
-    interval=156,
-    increment=4,
-):
-    """
-    Calculate idiosyncratic volatility (idiovol) for each month using a 3-year rolling window
-    of weekly returns, measured as the standard deviation of the difference between a stock's
-    return and the market return over the same period.
-
-    Parameters
-    ----------
-    weeks_sorted: list
-        Sorted list of weeks in "YYYY-WW" format.
-
-    months_sorted
-        A list of strings representing months_sorted in "YYYY-MM" format, ordered from most recent to oldest
-
-    month_latest_week
-        A dictionary mapping each month to its corresponding last week as a (year, week) tuple
-
-    weekly_returns
-        A dictionary mapping (year, week) tuples to the stock's weekly returns (float)
-
-    market_weekly_returns
-        A dictionary mapping (year, week) tuples to the market's weekly returns (float)
-
-    interval
-        Number of weeks in the rolling window used to calculate idiovol (default is 156, or approximately 3 years)
-
-    increment
-        Step size in weeks between calculations, typically 4 to move month by month (default is 4)
+    current : bool, optional
+        - If True, starts with the current month in the sliding window.
+        - If False (default), starts with the previous month in the sliding window.
 
     Returns
     --------
@@ -239,7 +160,11 @@ def calculate_idiovol_current(
     market_returns_list = [market_weekly_returns[k] for k in weeks_sorted]
 
     month_current_index = 0
-    month_start = months_sorted[1]
+    if current:
+        month_start = months_sorted[month_current_index]
+    else:
+        month_start = months_sorted[1]
+
     week_start = month_latest_week[month_start]
 
     try:
@@ -249,6 +174,7 @@ def calculate_idiovol_current(
         return {m: None for m in months_sorted}
 
     while month_current_index < len(months_sorted):
+
         if week_start + interval < len(weeks_sorted):
             # Get stock and market returns for the interval provided
             stock_window = weekly_returns_list[week_start : week_start + interval]
@@ -279,6 +205,7 @@ def calculate_beta_betasq(
     market_weekly_returns,
     interval=156,
     increment=4,
+    current=False,
 ):
     """
     Calculate rolling market beta for each month using weekly returns over the past 3 years.
@@ -309,111 +236,9 @@ def calculate_beta_betasq(
     increment : int
         The step size in weeks to move the rolling window forward (default is 4 weeks).
 
-    Returns
-    -------
-    dict
-        A dictionary mapping each month (string) to its corresponding beta value (float).
-        If there is insufficient data, the value will be None.
-
-    dict
-        A dictionary mapping each month (string) to the squared beta value (float).
-        If there is insufficient data, the value will be None.
-    """
-
-    beta_by_month = {}
-    betasq_by_month = {}
-
-    # Get a sorted list of the returns rather than the week:returns, for easier access
-    stock_returns_list = [weekly_returns[k] for k in weeks_sorted]
-    market_returns_list = [market_weekly_returns[k] for k in weeks_sorted]
-
-    current = 0
-    month_start = months_sorted[1]
-    week_start = month_latest_week[month_start]
-
-    # Get the week to start from, which is the latest week from the previous month (1) since current is 0
-    try:
-        start = weeks_sorted.index(week_start)
-    except ValueError:
-        print(f"Week {week_start} not found.")
-        return {m: None for m in months_sorted}
-
-    while current < len(months_sorted):
-        if start + interval < len(weeks_sorted):
-            # Getting the stock and market returns' windows
-            stock_window = stock_returns_list[start : start + interval]
-            market_window = market_returns_list[start : start + interval]
-
-            stock_np = np.array(stock_window)
-            market_np = np.array(market_window)
-
-            # Remove NaNs and ensure we have at least 52 valid points
-            mask = ~np.isnan(stock_np) & ~np.isnan(market_np)
-            if mask.sum() >= 52:
-                stock_np = stock_np[mask]
-                market_np = market_np[mask]
-
-                cov = np.cov(stock_np, market_np)[0][
-                    1
-                ]  # Returns covariance matrix, so will just get the covariance between them
-                var = np.var(market_np)
-
-                beta = cov / var if var != 0 else None
-
-                beta_by_month[months_sorted[current]] = beta
-                betasq_by_month[months_sorted[current]] = beta
-            else:
-                beta_by_month[months_sorted[current]] = None
-                betasq_by_month[months_sorted[current]] = None
-        else:
-            beta_by_month[months_sorted[current]] = None
-            betasq_by_month[months_sorted[current]] = None
-
-        start += increment
-        current += 1
-
-    return beta_by_month, betasq_by_month
-
-
-# Difference is beta and betasq from this month
-# month_start = months_sorted[current]
-def calculate_beta_betasq_current(
-    weeks_sorted,
-    months_sorted,
-    month_latest_week,
-    weekly_returns,
-    market_weekly_returns,
-    interval=156,
-    increment=4,
-):
-    """
-    Calculate rolling market beta for each month using weekly returns over the past 3 years.
-
-    Beta is defined as the covariance of stock and market returns divided by the variance of the market returns.
-    It measures the sensitivity of the stock's return to market movements.
-
-    Parameters
-    ----------
-    weeks_sorted: list
-        Sorted list of weeks in "YYYY-WW" format.
-
-    months_sorted : list
-        List of month strings (e.g., "YYYY-MM") ordered from most recent to oldest.
-
-    month_latest_week : dict
-        Mapping of each month to the last week of that month as a (year, week) tuple.
-
-    weekly_returns : dict
-        Mapping of (year, week) tuples to the stock's weekly returns (float).
-
-    market_weekly_returns : dict
-        Mapping of (year, week) tuples to the market's weekly returns (float).
-
-    interval : int
-        The number of weeks in the rolling window (default is 156 weeks, approximately 3 years).
-
-    increment : int
-        The step size in weeks to move the rolling window forward (default is 4 weeks).
+    current : bool, optional
+        - If True, starts with the current month in the sliding window.
+        - If False (default), starts with the previous month in the sliding window.
 
     Returns
     -------
@@ -433,18 +258,22 @@ def calculate_beta_betasq_current(
     stock_returns_list = [weekly_returns[k] for k in weeks_sorted]
     market_returns_list = [market_weekly_returns[k] for k in weeks_sorted]
 
-    current = 0
-    month_start = months_sorted[current]
+    current_index = 0
+    if current:
+        month_start = months_sorted[current_index]
+    else:
+        month_start = months_sorted[1]
+
     week_start = month_latest_week[month_start]
 
-    # Get the week to start from, which is the latest week from this month
+    # Get the week to start from, which is the latest week from the previous month (1) since current_index is 0
     try:
         start = weeks_sorted.index(week_start)
     except ValueError:
         print(f"Week {week_start} not found.")
         return {m: None for m in months_sorted}
 
-    while current < len(months_sorted):
+    while current_index < len(months_sorted):
         if start + interval < len(weeks_sorted):
             # Getting the stock and market returns' windows
             stock_window = stock_returns_list[start : start + interval]
@@ -459,21 +288,20 @@ def calculate_beta_betasq_current(
                 stock_np = stock_np[mask]
                 market_np = market_np[mask]
 
-                cov = np.cov(stock_np, market_np)[0][
-                    1
-                ]  # Returns covariance matrix, so will just get the covariance between them
+                # Returns covariance matrix, so will just get the covariance between them
+                cov = np.cov(stock_np, market_np)[0][1]
                 var = np.var(market_np)
 
                 beta = cov / var if var != 0 else None
 
-                beta_by_month[months_sorted[current]] = beta
-                betasq_by_month[months_sorted[current]] = beta
+                beta_by_month[months_sorted[current_index]] = beta
+                betasq_by_month[months_sorted[current_index]] = beta
             else:
-                beta_by_month[months_sorted[current]] = None
-                betasq_by_month[months_sorted[current]] = None
+                beta_by_month[months_sorted[current_index]] = None
+                betasq_by_month[months_sorted[current_index]] = None
         else:
-            beta_by_month[months_sorted[current]] = None
-            betasq_by_month[months_sorted[current]] = None
+            beta_by_month[months_sorted[current_index]] = None
+            betasq_by_month[months_sorted[current_index]] = None
 
         start += increment
         current += 1
