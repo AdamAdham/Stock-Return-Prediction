@@ -509,102 +509,6 @@ def get_market_cap_monthly(market_caps):
 # Risk Measures:
 
 
-def get_weekly_summary(prices_daily):
-    """
-    Gets the last week for each month.
-    Gets the sorted weeks by latest to oldest.
-    Calculate the weekly stock returns based on the closing prices of the
-    last trading day of each week.
-
-    The return for each week is calculated as the percentage change in
-    the closing price from the previous week's last trading day to the
-    current week's last trading day.
-
-    Parameters
-    ----------
-    prices_daily : list of dict
-        A list of dictionaries containing daily stock trading data with keys:
-        - "date" (str): The date in the format "YYYY-MM-DD".
-        - "price" (float): The closing price of the stock on that date.
-
-    Returns
-    ---------
-    tuple
-        A tuple containing two dictionaries:
-        - weeks_sorted (list): Sorted list of weeks in "YYYY-WW" format.
-        - month_latest_week (dict): A dictionary where keys are month identifiers
-          (in the format "YYYY-MM") and values are the last trading week of that month
-          (represented as a tuple of year and week number).
-        - returns_weekly (dict): A dictionary where keys are tuples representing the
-          year and week number (e.g., (2022, 1) for the first week of 2022), and values
-          are the calculated weekly returns (float), based on the percentage change
-          between the closing prices of consecutive weeks.
-    """
-
-    # Group by calendar week (year, week number)
-    prices_weekly = {}
-    month_latest_week = {}
-
-    # Get the closing price of each week
-    for entry in prices_daily:
-        date = datetime.strptime(entry["date"], "%Y-%m-%d")
-        month = f"{date.year}-{date.month:02d}"
-        year, week_number, _ = date.isocalendar()
-        week_key = f"{year}-{week_number:02d}"  # (year, week_number), str due to not being able to dump json
-
-        if week_key not in prices_weekly:
-            prices_weekly[week_key] = entry["price"]
-
-        if month not in month_latest_week:
-            month_latest_week[month] = week_key
-
-    # Compute weekly returns
-    returns_weekly = {}
-    weeks_sorted = list(sorted(prices_weekly.keys(), reverse=True))
-
-    for i in range(len(weeks_sorted) - 1):
-        price_current = prices_weekly[weeks_sorted[i]]
-        price_previous = prices_weekly[weeks_sorted[i + 1]]
-
-        returns_weekly[weeks_sorted[i]] = calculate_return(
-            price_current, price_previous, round_to=RETURN_ROUND_TO
-        )
-
-    # Assign None to remaining week
-    returns_weekly[weeks_sorted[-1]] = None
-
-    return weeks_sorted, month_latest_week, returns_weekly
-
-
-def get_previous_week(year, week, keys):
-    """
-    Get the previous calendar week, properly handling year transitions.
-
-    This function computes the previous week number for a given (year, week) pair.
-    If the current week is the first of the year, it rolls back to the last valid week
-    of the previous year (either week 52 or 53, depending on the calendar).
-
-    Parameters
-    year (int)
-        The current year.
-    week (int)
-        The current ISO calendar week number.
-    keys (set or list of tuple)
-        A collection of (year, week) tuples to determine if week 53 exists for a given year.
-
-    Returns
-    tuple
-        A tuple (year, week) representing the previous week.
-    """
-    week -= 1
-
-    # First week in the year, so year has finished, so decrement the year and initialize week to 53 if present 52 otherwise
-    if week <= 0:
-        year -= 1
-        week = 53 if (year, 53) in keys else 52
-    return year, week
-
-
 def get_rolling_returns_weekly(
     weeks_sorted,
     months_sorted,
@@ -612,6 +516,7 @@ def get_rolling_returns_weekly(
     returns_weekly,
     interval=156,
     increment=4,
+    current=False,
 ):
     """
     Compute rolling average of weekly returns for each month over a specified interval.
@@ -643,6 +548,10 @@ def get_rolling_returns_weekly(
     increment : int, optional
         The number of weeks to move forward in each step (default is 4 weeks, roughly one month).
 
+    current : bool, optional
+        - If True, uses current month's weeks.
+        - If False (default), starts with previous month.
+
     Returns
     -------
     dict
@@ -655,101 +564,30 @@ def get_rolling_returns_weekly(
 
     returns_weekly_list = [returns_weekly[k] for k in weeks_sorted]
 
-    current = 0
-    month_start = months_sorted[1]
+    current_index = 0
+    if current:
+        month_start = months_sorted[current_index]
+    else:
+        month_start = months_sorted[1]
+
     week_start = month_latest_week[month_start]
 
     # Get index of the latest week of the month to start which is the previous one since in paper states "prior to month end."
     start = weeks_sorted.index(week_start)
 
-    while current < len(months_sorted):
+    while current_index < len(months_sorted):
 
         if start + interval < len(returns_weekly_list):
             # Rolling average of the 156 weekly returns
-            rolling_returns_weekly[months_sorted[current]] = (
+            rolling_returns_weekly[months_sorted[current_index]] = (
                 sum(returns_weekly_list[start : start + interval]) / interval
             )
         else:
             # Not enough data
-            rolling_returns_weekly[months_sorted[current]] = None
+            rolling_returns_weekly[months_sorted[current_index]] = None
 
         start += increment
-        current += 1
-
-    return rolling_returns_weekly
-
-
-# Difference is the window starts from current month
-# month_start = months_sorted[current]
-def get_rolling_returns_weekly_current(
-    weeks_sorted,
-    months_sorted,
-    month_latest_week,
-    returns_weekly,
-    interval=156,
-    increment=4,
-):
-    """
-    Compute rolling average of weekly returns for each month over a specified interval.
-
-    This function calculates the average of weekly stock returns over a fixed interval
-    (default 156 weeks, approximately 3 years) for each month in the `months_sorted` list.
-    The calculation starts from the last trading week prior to each month and rolls backward.
-    The function moves forward by a set increment (default 4 weeks) for each new month.
-
-    Parameters
-    ----------
-    weeks_sorted: list
-        Sorted list of weeks in "YYYY-WW" format.
-
-    months_sorted : list of str
-        A list of month identifiers in the format "YYYY-MM", sorted in descending order (most recent first).
-
-    month_latest_week : dict
-        A dictionary mapping each month ("YYYY-MM") to the latest trading week prior to the month's end.
-        Each value is a tuple of (year, week_number).
-
-    returns_weekly : dict
-        A dictionary where keys are tuples (year, week_number) and values are the weekly return (float)
-        for that week.
-
-    interval : int, optional
-        The number of weeks to include in the rolling average (default is 156 weeks).
-
-    increment : int, optional
-        The number of weeks to move forward in each step (default is 4 weeks, roughly one month).
-
-    Returns
-    -------
-    dict
-        A dictionary where keys are month identifiers ("YYYY-MM") and values are the rolling average
-        of weekly returns over the specified interval. If insufficient data exists to compute the
-        average for a given month, the value will be None.
-    """
-
-    rolling_returns_weekly = {}
-    returns_weekly_list = [returns_weekly[k] for k in weeks_sorted]
-
-    current = 0
-    month_start = months_sorted[current]
-    week_start = month_latest_week[month_start]
-
-    # Get index of the latest week of the month to start which is the previous one since in paper states "prior to month end."
-    start = weeks_sorted.index(week_start)
-
-    while current < len(months_sorted):
-
-        if start + interval < len(returns_weekly_list):
-            # Rolling average of the 156 weekly returns
-            rolling_returns_weekly[months_sorted[current]] = (
-                sum(returns_weekly_list[start : start + interval]) / interval
-            )
-        else:
-            # Not enough data
-            rolling_returns_weekly[months_sorted[current]] = None
-
-        start += increment
-        current += 1
+        current_index += 1
 
     return rolling_returns_weekly
 

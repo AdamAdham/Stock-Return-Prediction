@@ -288,7 +288,7 @@ def enrich_stocks_with_features(
         aggregate_stats: dict
             - 'indmom' : dict
                 A nested dictionary structured as {sic_code: {month: average_industry_momentum}}.
-            - 'market_returns' : dict
+            - 'market_returns_weekly' : dict
                 A dictionary structured as {week: average_weekly_market_return}.
 
         status: dict
@@ -313,17 +313,19 @@ def enrich_stocks_with_features(
     success = []
     failed = []
     for i, stock in enumerate(stocks):
+        # Check if within the limits
         if i < start_index:
-            continue  # Skip until we reach start_index
+            continue
         if end_index is not None and i >= end_index:
             break
+
         try:
             print(f"Stock {stock['symbol']} , Index {i} started")
-
             enriched_stock = get_features(stock)
 
             # Update indmom and market returns sum and count to be averaged once done
             indmom = handle_indmom(enriched_stock, indmom)
+
             market_return_details = handle_market_returns_weekly(
                 enriched_stock, market_return_details
             )
@@ -345,8 +347,7 @@ def enrich_stocks_with_features(
             )
             error_message += f"\nStack Trace:\n{traceback.format_exc()}"
             print(error_message)
-            print("-" * 100)
-            print("\n \n \n")
+            print("-" * 100, "\n \n \n")
 
             failed.append(stock["symbol"])
             continue
@@ -357,11 +358,11 @@ def enrich_stocks_with_features(
             indmom[sic][month] = data["total"] / data["count"]
 
     # Get average of weekly market returns
-    market_returns = {}
+    market_returns_weekly = {}
     for week, returns in market_return_details.items():
-        market_returns[week] = returns["sum"] / returns["count"]
+        market_returns_weekly[week] = returns["sum"] / returns["count"]
 
-    return {"indmom": indmom, "market_returns": market_returns}, {
+    return {"indmom": indmom, "market_returns_weekly": market_returns_weekly}, {
         "success": success,
         "failed": failed,
     }
@@ -427,35 +428,62 @@ def enrich_stocks_with_aggregate_features(
 
         try:
             subfeatures = stock["subfeatures"]
+            weeks_sorted = subfeatures["lists"]["weeks_sorted"]
+            months_sorted = subfeatures["lists"]["months_sorted"]
+            month_latest_week = subfeatures["monthly"]["month_latest_week"]
+            returns_weekly = subfeatures["weekly"]["returns_weekly"]
+
+            print("calculate_beta_betasq, current=False")
 
             # Calculate beta and betasq
             beta, betasq = calculate_beta_betasq(
-                subfeatures["lists"]["weeks_sorted"],
-                subfeatures["monthly"]["months_sorted"],
-                subfeatures["monthly"]["month_latest_week"],
-                subfeatures["weekly"]["returns_weekly"],
+                weeks_sorted,
+                months_sorted,
+                month_latest_week,
+                returns_weekly,
                 market_returns_weekly,
-                interval=156,
-                increment=4,
             )
+
+            print("calculate_beta_betasq, current=True")
+
+            beta_current, betasq_current = calculate_beta_betasq(
+                weeks_sorted,
+                months_sorted,
+                month_latest_week,
+                returns_weekly,
+                market_returns_weekly,
+                current=True,
+            )
+
+            print("calculate_idiovol, current=False")
 
             # Calculate idiovol
             idiovol = calculate_idiovol(
-                subfeatures["lists"]["weeks_sorted"],
-                subfeatures["monthly"]["months_sorted"],
-                subfeatures["monthly"]["month_latest_week"],
-                subfeatures["weekly"]["returns"],
+                weeks_sorted,
+                months_sorted,
+                month_latest_week,
+                returns_weekly,
                 market_returns_weekly,
-                interval=156,
-                increment=4,
+            )
+
+            print("calculate_idiovol, current=True")
+
+            idiovol_current = calculate_idiovol(
+                weeks_sorted,
+                months_sorted,
+                month_latest_week,
+                returns_weekly,
+                market_returns_weekly,
+                current=True,
             )
 
             # Add beta, betasq, and idiovol to stock
-            stock["features"][
-                "beta"
-            ] = beta  # Assuming calculate_beta_betasq returns a tuple (beta, betasq)
+            stock["features"]["beta"] = beta
+            stock["features"]["beta_current"] = beta_current
             stock["features"]["betasq"] = betasq
+            stock["features"]["betasq_current"] = betasq_current
             stock["features"]["idiovol"] = idiovol
+            stock["features"]["idiovol_current"] = idiovol_current
 
             sic_2 = stock["sicCode_2"]
             stock["features"]["indmom"] = indmom[sic_2]
@@ -466,7 +494,17 @@ def enrich_stocks_with_aggregate_features(
             success.append(stock["symbol"])
 
         except Exception as e:
-            print(f"Error processing stock {stock.get('ticker', 'N/A')}: {e}")
+            # Print detailed error information
+            error_message = (
+                f"Error processing stock {stock.get('symbol', 'N/A')} at index {i}."
+            )
+            error_message += (
+                f"\nError Type: {type(e).__name__}\nError Message: {str(e)}"
+            )
+            error_message += f"\nStack Trace:\n{traceback.format_exc()}"
+            print(error_message)
+            print("-" * 100, "\n \n \n")
+
             failed.append(stock["symbol"])
             continue
 
