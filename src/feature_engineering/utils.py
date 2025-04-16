@@ -1,5 +1,6 @@
 from datetime import datetime
 from src.config.settings import RETURN_ROUND_TO
+from collections import defaultdict
 
 
 def calculate_return(price_later, price_earlier, round_to=None):
@@ -57,18 +58,8 @@ def get_monthly_price(prices_daily):
     -------
     tuple
         A tuple containing:
-        - months (list of str): A list of unique months (formatted as "YYYY-MM") found in the dataset and acts as index to prices_monthly (returned in the same order of prices_daily dates).
+        - months_sorted (list of str): A list of unique months_sorted (formatted as "YYYY-MM") found in the dataset and acts as index to prices_monthly (returned in the same order of prices_daily dates).
         - prices_monthly (dict): A dictionary mapping each month ("YYYY-MM") to its latest available price.
-
-    Example
-    -------
-    >>> prices_daily = [
-    ...     {"date": "2025-03-29", "price": 150.5},
-    ...     {"date": "2025-03-30", "price": 152.0},
-    ...     {"date": "2025-04-01", "price": 155.0}
-    ... ]
-    >>> get_monthly_price(prices_daily)
-    (["2025-03", "2025-04"], {"2025-03": 150.5, "2025-04": 155.0})
 
     Notes
     -----
@@ -77,7 +68,7 @@ def get_monthly_price(prices_daily):
     """
 
     prices_monthly = {}
-    months = []
+    months_sorted = []
     seen = set()
 
     # Get latest price of each month
@@ -87,10 +78,249 @@ def get_monthly_price(prices_daily):
 
         if month not in seen:
             seen.add(month)
-            months.append(month)
+            months_sorted.append(month)
             prices_monthly[month] = entry["price"]
 
-    return months, prices_monthly
+    return months_sorted, prices_monthly
+
+
+def get_weekly_monthly_summary(prices_daily):
+    """
+    Computes a comprehensive weekly and monthly summary from a list of daily stock data.
+
+    This function aggregates daily price and volume data into multiple temporal resolutions and metrics,
+    including:
+    - Latest weekly and monthly closing prices
+    - Monthly dollar volume (price × volume)
+    - Monthly trading day statistics
+    - Daily volume lookup
+    - Weekly price return reference
+    - Monthly maximum daily return
+
+    Parameters
+    ----------
+    prices_daily : list of dict
+        A list of dictionaries representing daily stock data. Each dictionary should contain:
+            - "date" (str): The date of the entry in "YYYY-MM-DD" format. Assumed to be sorted from latest to earliest.
+            - "price" (float): Closing price of the stock on the given date.
+            - "volume" (float): Trading volume on the given date.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the following elements:
+        - weeks_sorted : list of str
+            List of unique ISO weeks (formatted as "YYYY-WW"), sorted from latest to earliest.
+        - prices_weekly : dict
+            Dictionary mapping each ISO week to the latest available stock price in that week.
+        - months_sorted : list of str
+            List of unique months (formatted as "YYYY-MM") in the order they appear in the input (latest to earliest).
+        - month_latest_week : dict
+            Mapping from each month to its latest week identifier (used for aligning weekly/monthly calculations).
+        - prices_monthly : dict
+            Mapping from each month to the latest available closing price.
+        - dollar_volume_monthly : dict
+            Mapping from each month to a dictionary with total and count of daily dollar volumes:
+            {'sum': float, 'count': int}.
+        - vol_sum_monthly : dict
+            Mapping from each month to the total trading volume.
+        - zero_trading_days_count_monthly : dict
+            Mapping from each month to the count of days with zero trading volume.
+        - trading_days_count_monthly : dict
+            Mapping from each month to the total number of trading days.
+        - maxret_monthly : dict
+            Mapping from each month to the highest single-day return observed that month.
+            If a month has only one day, return is `None`.
+        - daily_returns_monthly : dict
+            Mapping from each month "YYYY-MM" to a list of daily returns.
+    """
+
+    months_sorted = []
+    seen = set()
+    prices_monthly = {}
+
+    dollar_volume_monthly = {}
+
+    prices_weekly = {}
+    month_latest_week = {}
+    weeks_sorted = []
+
+    vol_sum_monthly = {}
+    vol_daily = {}
+
+    zero_trading_days_count_monthly = {}
+    trading_days_count_monthly = {}
+
+    maxret_monthly = {}
+
+    daily_returns_monthly = defaultdict(list)
+
+    # Get latest price of each month
+    for i, entry in enumerate(prices_daily):
+        # Parse date into month, week and day
+        date = datetime.strptime(entry["date"], "%Y-%m-%d")
+        month = f"{date.year}-{date.month:02d}"
+        year, week_number, _ = date.isocalendar()
+        week_key = f"{year}-{week_number:02d}"  # (year, week_number), str due to not being able to dump json
+        day = f"{date.year}-{date.month:02d}-{date.day:02d}"
+
+        price = entry["price"]
+        volume = entry["volume"]
+
+        dollar_volume = price * volume  # Calculate dollar value
+
+        # Monthly prices handling
+        if month not in seen:
+            seen.add(month)
+            months_sorted.append(month)
+            prices_monthly[month] = price
+
+        # Dollar volume handling
+        if month not in dollar_volume_monthly:
+            dollar_volume_monthly[month] = {"sum": dollar_volume, "count": 1}
+        else:
+            dollar_volume_monthly[month]["sum"] += dollar_volume
+            dollar_volume_monthly[month]["count"] += 1
+
+        # Weekly returns, latest week handling
+        if week_key not in prices_weekly:
+            prices_weekly[week_key] = price
+            weeks_sorted.append(week_key)
+
+        if month not in month_latest_week:
+            month_latest_week[month] = week_key
+
+        # Sum the daily volume for the month
+        vol_sum_monthly[month] = vol_sum_monthly.get(month, 0) + volume
+
+        # Count total trading days
+        trading_days_count_monthly[month] = trading_days_count_monthly.get(month, 0) + 1
+
+        # Initialize zerotrade for first occurrences
+        if month not in zero_trading_days_count_monthly:
+            zero_trading_days_count_monthly[month] = 0
+
+        # Count zero trading days
+        if volume == 0:
+            zero_trading_days_count_monthly[month] += 1
+
+        # Create a daily volume lookup to use to calculate the daily turnover when loop through the shares
+        vol_daily[day] = volume
+
+        if i < len(prices_daily) - 1:
+            price_previous = prices_daily[i + 1]["price"]
+            return_current = calculate_return(
+                price,
+                price_previous,
+                round_to=RETURN_ROUND_TO,
+            )
+        # If last return set it to None
+        else:
+            return_current = None
+
+        # Calculate maxret_current
+        # If this is the first calculated return in this month or
+        # the the current calculated return is not None (not last price in list) and
+        # is higher than the previously highest return
+        if month not in maxret_monthly or (
+            return_current is not None and maxret_monthly[month] < return_current
+        ):
+            maxret_monthly[month] = return_current
+
+        # Get daily_returns
+        if return_current is not None:
+            daily_returns_monthly[month].append(return_current)
+        elif month not in daily_returns_monthly:
+            # First value of the month but it is last value of the prices so return is empty array
+            # since no returns present and so the np.std([]) to be None
+            daily_returns_monthly[month] = []
+
+    return (
+        weeks_sorted,
+        prices_weekly,
+        months_sorted,
+        month_latest_week,
+        prices_monthly,
+        dollar_volume_monthly,
+        vol_sum_monthly,
+        zero_trading_days_count_monthly,
+        trading_days_count_monthly,
+        maxret_monthly,
+        daily_returns_monthly,
+    )
+
+
+def get_shares_monthly(outstanding_shares):
+    """
+    Aggregate daily outstanding shares into monthly outstanding shares by choosing the outstanding share for
+    the last trading day of that month.
+
+    Parameters
+    ----------
+    outstanding_shares : dict
+        A dictionary where keys are dates in "YYYY-MM-DD" format, and values are the number of outstanding
+        shares on that specific date.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are month identifiers in the format "YYYY-MM", and values are the number of
+        outstanding shares for that month (taken from the first occurrence of each month).
+    """
+    shares_monthly = {}
+
+    shares_keys = sorted(
+        outstanding_shares.keys(), reverse=True
+    )  # Dates sorted from latest to earliest
+    for key_date in shares_keys:
+        date = datetime.strptime(key_date, "%Y-%m-%d")
+        month = f"{date.year}-{date.month:02d}"
+
+        shares = outstanding_shares[key_date]
+        if month not in shares_monthly:
+            shares_monthly[month] = shares
+    print("get_shares_monthly", "shares_monthly", shares_monthly)
+
+    return shares_monthly
+
+
+def get_returns_weekly(weeks_sorted, price_weekly):
+    """
+    Calculate the weekly stock returns based on the closing prices of the last trading day of each week.
+
+    The return for each week is calculated as the percentage change in the closing price from the previous
+    week's last trading day to the current week's last trading day.
+
+    Parameters
+    ----------
+    weeks_sorted : list of str
+        A sorted list of week identifiers in "YYYY-WW" format, where each element represents a calendar week.
+        The list should be sorted in descending order (latest week first).
+
+    price_weekly : dict
+        A dictionary where keys are week identifiers (in "YYYY-WW" format), and values are the closing prices
+        of the stock on the last trading day of each week.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are week identifiers (in "YYYY-WW" format), and values are the calculated
+        weekly returns (float), based on the percentage change in the closing prices between consecutive weeks.
+        The last week in the sorted list will have a return value of None as it has no next week to compare to.
+
+    """
+    returns_weekly = {}
+    for i in range(len(weeks_sorted) - 1):
+        price_current = price_weekly[weeks_sorted[i]]
+        price_previous = price_weekly[weeks_sorted[i + 1]]
+
+        returns_weekly[weeks_sorted[i]] = calculate_return(
+            price_current, price_previous, round_to=RETURN_ROUND_TO
+        )
+    # Assign None to remaining week
+    returns_weekly[weeks_sorted[-1]] = None
+
+    return returns_weekly
 
 
 # Liquidity Variables
@@ -122,7 +352,7 @@ def get_dollar_volume_monthly(prices_daily):
     - Dates must be in "YYYY-MM-DD" format for proper parsing.
     """
 
-    dollar_volume_by_month = {}
+    dollar_volume_monthly = {}
 
     for entry in prices_daily:
         date = datetime.strptime(entry["date"], "%Y-%m-%d")
@@ -130,14 +360,14 @@ def get_dollar_volume_monthly(prices_daily):
 
         dollar_volume = entry["price"] * entry["volume"]  # Calculate value
 
-        # Check if first occurence of current month
-        if month not in dollar_volume_by_month:
-            dollar_volume_by_month[month] = {"sum": dollar_volume, "count": 1}
+        # Check if first occurrence of current month
+        if month not in dollar_volume_monthly:
+            dollar_volume_monthly[month] = {"sum": dollar_volume, "count": 1}
         else:
-            dollar_volume_by_month[month]["sum"] += dollar_volume
-            dollar_volume_by_month[month]["count"] += 1
+            dollar_volume_monthly[month]["sum"] += dollar_volume
+            dollar_volume_monthly[month]["count"] += 1
 
-    return dollar_volume_by_month
+    return dollar_volume_monthly
 
 
 def get_volume_shares_statistics(prices_daily, shares_daily):
@@ -164,23 +394,23 @@ def get_volume_shares_statistics(prices_daily, shares_daily):
     -------
     tuple
         A tuple containing five dictionaries:
-        - vol_sum (dict): A dictionary where keys are month identifiers (str) in the format "YYYY-MM",
+        - vol_sum_monthly (dict): A dictionary where keys are month identifiers (str) in the format "YYYY-MM",
           and values are the total volume of shares traded during that month.
         - shares_monthly (dict): A dictionary where keys are month identifiers (str) in the format "YYYY-MM",
           and values are the number of outstanding shares at the last trading day of that month.
-        - zero_trading_days_count (dict): A dictionary where keys are month identifiers (str) in the format "YYYY-MM",
+        - zero_trading_days_count_monthly (dict): A dictionary where keys are month identifiers (str) in the format "YYYY-MM",
           and values are the number of days with zero trading volume in that month.
-        - trading_days_count (dict): A dictionary where keys are month identifiers (str) in the format "YYYY-MM",
+        - trading_days_count_monthly (dict): A dictionary where keys are month identifiers (str) in the format "YYYY-MM",
           and values are the number of trading days in that month.
         - daily_turnover (dict): A dictionary where keys are month identifiers (str) in the format "YYYY-MM",
           and values are dictionaries where each key is a day identifier (str) in the format "YYYY-MM-DD"
           and the value is the daily turnover for that day.
     """
 
-    vol_sum = {}
+    vol_sum_monthly = {}
     shares_monthly = {}
-    zero_trading_days_count = {}
-    trading_days_count = {}
+    zero_trading_days_count_monthly = {}
+    trading_days_count_monthly = {}
     daily_turnover = {}
 
     vol_daily = {}
@@ -194,18 +424,18 @@ def get_volume_shares_statistics(prices_daily, shares_daily):
         volume = entry["volume"]
 
         # Sum the daily volume for the month
-        vol_sum[month] = vol_sum.get(month, 0) + volume
+        vol_sum_monthly[month] = vol_sum_monthly.get(month, 0) + volume
 
         # Count total trading days
-        trading_days_count[month] = trading_days_count.get(month, 0) + 1
+        trading_days_count_monthly[month] = trading_days_count_monthly.get(month, 0) + 1
 
         # Initialize the month
-        if month not in zero_trading_days_count:
-            zero_trading_days_count[month] = 0
+        if month not in zero_trading_days_count_monthly:
+            zero_trading_days_count_monthly[month] = 0
 
         # Count zero trading days
         if volume == 0:
-            zero_trading_days_count[month] += 1
+            zero_trading_days_count_monthly[month] += 1
 
         # Create a daily volume lookup to use to calculate the daily turnover when loop through the shares
         vol_daily[day] = volume
@@ -232,10 +462,10 @@ def get_volume_shares_statistics(prices_daily, shares_daily):
             print(f"Shares data available but no matching volume data on {day}")
 
     return (
-        vol_sum,
+        vol_sum_monthly,
         shares_monthly,
-        zero_trading_days_count,
-        trading_days_count,
+        zero_trading_days_count_monthly,
+        trading_days_count_monthly,
         daily_turnover,
     )
 
@@ -277,120 +507,36 @@ def get_market_cap_monthly(market_caps):
 # Risk Measures:
 
 
-def get_stock_returns_weekly(prices_daily):
-    """
-    Calculate the weekly stock returns based on the closing prices of the
-    last trading day of each week.
-
-    The return for each week is calculated as the percentage change in
-    the closing price from the previous week's last trading day to the
-    current week's last trading day.
-
-    Parameters
-    ----------
-    prices_daily : list of dict
-        A list of dictionaries containing daily stock trading data with keys:
-        - "date" (str): The date in the format "YYYY-MM-DD".
-        - "price" (float): The closing price of the stock on that date.
-
-    Returns
-    ---------
-    tuple
-        A tuple containing two dictionaries:
-        - month_latest_week (dict): A dictionary where keys are month identifiers
-          (in the format "YYYY-MM") and values are the last trading week of that month
-          (represented as a tuple of year and week number).
-        - weekly_returns (dict): A dictionary where keys are tuples representing the
-          year and week number (e.g., (2022, 1) for the first week of 2022), and values
-          are the calculated weekly returns (float), based on the percentage change
-          between the closing prices of consecutive weeks.
-    """
-
-    # Group by calendar week (year, week number)
-    weekly_prices = {}
-    month_latest_week = {}
-
-    # Get the closing price of each week
-    for entry in prices_daily:
-        date = datetime.strptime(entry["date"], "%Y-%m-%d")
-        month = f"{date.year}-{date.month:02d}"
-        year, week_number, _ = date.isocalendar()
-        week_key = f"{year}-{week_number:02d}"  # (year, week_number), str due to not being able to dump json
-
-        if week_key not in weekly_prices:
-            weekly_prices[week_key] = entry["price"]
-
-        if month not in month_latest_week:
-            month_latest_week[month] = week_key
-
-    # Compute weekly returns
-    weekly_returns = {}
-    weeks = list(sorted(weekly_prices.keys(), reverse=True))
-
-    for i in range(len(weeks) - 1):
-        price_current = weekly_prices[weeks[i]]
-        price_previous = weekly_prices[weeks[i + 1]]
-
-        weekly_returns[weeks[i]] = calculate_return(
-            price_current, price_previous, round_to=RETURN_ROUND_TO
-        )
-
-    # Assign None to remaining week
-    weekly_returns[weeks[-1]] = None
-
-    return month_latest_week, weekly_returns
-
-
-def get_previous_week(year, week, keys):
-    """
-    Get the previous calendar week, properly handling year transitions.
-
-    This function computes the previous week number for a given (year, week) pair.
-    If the current week is the first of the year, it rolls back to the last valid week
-    of the previous year (either week 52 or 53, depending on the calendar).
-
-    Parameters
-    year (int)
-        The current year.
-    week (int)
-        The current ISO calendar week number.
-    keys (set or list of tuple)
-        A collection of (year, week) tuples to determine if week 53 exists for a given year.
-
-    Returns
-    tuple
-        A tuple (year, week) representing the previous week.
-    """
-    week -= 1
-
-    # First week in the year, so year has finished, so decrement the year and initialize week to 53 if present 52 otherwise
-    if week <= 0:
-        year -= 1
-        week = 53 if (year, 53) in keys else 52
-    return year, week
-
-
-def get_rolling_weekly_returns(
-    months, month_latest_week, weekly_returns, interval=156, increment=4
+def get_rolling_returns_weekly(
+    weeks_sorted,
+    months_sorted,
+    month_latest_week,
+    returns_weekly,
+    interval=156,
+    increment=4,
+    current=False,
 ):
     """
     Compute rolling average of weekly returns for each month over a specified interval.
 
     This function calculates the average of weekly stock returns over a fixed interval
-    (default 156 weeks, approximately 3 years) for each month in the `months` list.
+    (default 156 weeks, approximately 3 years) for each month in the `months_sorted` list.
     The calculation starts from the last trading week prior to each month and rolls backward.
     The function moves forward by a set increment (default 4 weeks) for each new month.
 
     Parameters
     ----------
-    months : list of str
+    weeks_sorted: list
+        Sorted list of weeks in "YYYY-WW" format.
+
+    months_sorted : list of str
         A list of month identifiers in the format "YYYY-MM", sorted in descending order (most recent first).
 
     month_latest_week : dict
         A dictionary mapping each month ("YYYY-MM") to the latest trading week prior to the month's end.
         Each value is a tuple of (year, week_number).
 
-    weekly_returns : dict
+    returns_weekly : dict
         A dictionary where keys are tuples (year, week_number) and values are the weekly return (float)
         for that week.
 
@@ -400,74 +546,9 @@ def get_rolling_weekly_returns(
     increment : int, optional
         The number of weeks to move forward in each step (default is 4 weeks, roughly one month).
 
-    Returns
-    -------
-    dict
-        A dictionary where keys are month identifiers ("YYYY-MM") and values are the rolling average
-        of weekly returns over the specified interval. If insufficient data exists to compute the
-        average for a given month, the value will be None.
-    """
-
-    rolling_weekly_returns = {}
-
-    sorted_keys = sorted(weekly_returns.keys(), reverse=True)  # sorts by (year, week)
-    weekly_returns_list = [weekly_returns[k] for k in sorted_keys]
-
-    current = 0
-    month_start = months[1]
-    week_start = month_latest_week[month_start]
-
-    # Get index of the latest week of the month to start which is the previous one since in paper states "prior to month end."
-    start = sorted_keys.index(week_start)
-
-    while current < len(months):
-
-        if start + interval < len(weekly_returns_list):
-            # Rolling average of the 156 weekly returns
-            rolling_weekly_returns[months[current]] = (
-                sum(weekly_returns_list[start : start + interval]) / interval
-            )
-        else:
-            # Not enough data
-            rolling_weekly_returns[months[current]] = None
-
-        start += increment
-        current += 1
-
-    return rolling_weekly_returns
-
-
-# Differnce is the window starts from current month
-# month_start = months[current]
-def get_rolling_weekly_returns_current(
-    months, month_latest_week, weekly_returns, interval=156, increment=4
-):
-    """
-    Compute rolling average of weekly returns for each month over a specified interval.
-
-    This function calculates the average of weekly stock returns over a fixed interval
-    (default 156 weeks, approximately 3 years) for each month in the `months` list.
-    The calculation starts from the last trading week prior to each month and rolls backward.
-    The function moves forward by a set increment (default 4 weeks) for each new month.
-
-    Parameters
-    ----------
-    months : list of str
-        A list of month identifiers in the format "YYYY-MM", sorted in descending order (most recent first).
-
-    month_latest_week : dict
-        A dictionary mapping each month ("YYYY-MM") to the latest trading week prior to the month's end.
-        Each value is a tuple of (year, week_number).
-
-    weekly_returns : dict
-        A dictionary where keys are tuples (year, week_number) and values are the weekly return (float)
-        for that week.
-
-    interval : int, optional
-        The number of weeks to include in the rolling average (default is 156 weeks).
-
-    increment : int, optional
-        The number of weeks to move forward in each step (default is 4 weeks, roughly one month).
+    current : bool, optional
+        - If True, uses current month's weeks.
+        - If False (default), starts with previous month.
 
     Returns
     -------
@@ -477,33 +558,36 @@ def get_rolling_weekly_returns_current(
         average for a given month, the value will be None.
     """
 
-    rolling_weekly_returns = {}
+    rolling_returns_weekly = {}
 
-    sorted_keys = sorted(weekly_returns.keys(), reverse=True)  # sorts by (year, week)
-    weekly_returns_list = [weekly_returns[k] for k in sorted_keys]
+    returns_weekly_list = [returns_weekly[k] for k in weeks_sorted]
 
-    current = 0
-    month_start = months[current]
+    current_index = 0
+    if current:
+        month_start = months_sorted[current_index]
+    else:
+        month_start = months_sorted[1]
+
     week_start = month_latest_week[month_start]
 
     # Get index of the latest week of the month to start which is the previous one since in paper states "prior to month end."
-    start = sorted_keys.index(week_start)
+    start = weeks_sorted.index(week_start)
 
-    while current < len(months):
+    while current_index < len(months_sorted):
 
-        if start + interval < len(weekly_returns_list):
+        if start + interval < len(returns_weekly_list):
             # Rolling average of the 156 weekly returns
-            rolling_weekly_returns[months[current]] = (
-                sum(weekly_returns_list[start : start + interval]) / interval
+            rolling_returns_weekly[months_sorted[current_index]] = (
+                sum(returns_weekly_list[start : start + interval]) / interval
             )
         else:
             # Not enough data
-            rolling_weekly_returns[months[current]] = None
+            rolling_returns_weekly[months_sorted[current_index]] = None
 
         start += increment
-        current += 1
+        current_index += 1
 
-    return rolling_weekly_returns
+    return rolling_returns_weekly
 
 
 def get_rolling_market_returns(stocks):
@@ -518,24 +602,24 @@ def get_rolling_market_returns(stocks):
     Parameters
     stocks
         A list of dictionaries, each representing a stock. Each dictionary must contain a key
-        "rolling_avg_3y_weekly_returns_by_month", which maps month strings (in "YYYY-MM" format)
+        "rolling_avg_3y_returns_weekly_monthly", which maps month strings (in "YYYY-MM" format)
         to the rolling average of weekly returns for that stock.
 
     Returns
     dict
-        A dictionary where keys are months (str in "YYYY-MM" format) and values are the
+        A dictionary where keys are months_sorted (str in "YYYY-MM" format) and values are the
         average of 3-year rolling weekly returns across all stocks for that month.
     """
 
     rolling_market_returns = {}
 
     for stock in stocks:
-        rolling_avg_3y_weekly_returns_by_month = stock["subfeatures"]["monthly"][
-            "rolling_avg_3y_weekly_returns_by_month"
+        rolling_avg_3y_returns_weekly_monthly = stock["subfeatures"]["monthly"][
+            "rolling_avg_3y_returns_weekly_monthly"
         ]
 
-        # For every stock and every month, the rolling_avg_3y_weekly_returns_by_month value is summed to get the average across the whole market
-        for month, value in rolling_avg_3y_weekly_returns_by_month.items():
+        # For every stock and every month, the rolling_avg_3y_returns_weekly_monthly value is summed to get the average across the whole market
+        for month, value in rolling_avg_3y_returns_weekly_monthly.items():
 
             if month not in rolling_market_returns:
                 rolling_market_returns[month] = {"sum": value, "count": 1}
@@ -577,7 +661,7 @@ def get_market_returns_weekly(stocks):
     """
     market_return_details = {}
     for stock in stocks:
-        for week, returns in stock["weekly_returns"].items():
+        for week, returns in stock["returns_weekly"].items():
             if week not in market_return_details:
                 market_return_details[week] = {"sum": returns, "count": 1}
             else:
@@ -605,7 +689,7 @@ def handle_market_returns_weekly(stock, market_return_details):
     ----------
     stock : dict
         A dictionary representing a stock, containing:
-            - ["subfeatures"]["weekly_returns"]: A dictionary where keys are weeks
+            - ["subfeatures"]["returns_weekly"]: A dictionary where keys are weeks
             (in "YYYY-WW" format) and values are the market returns for the respective week.
     market_return_details : dict
         A dictionary that stores the accumulated market returns, where keys are weeks (in "YYYY-WW" format)
@@ -621,13 +705,14 @@ def handle_market_returns_weekly(stock, market_return_details):
             - 'sum': Updated total market return for that week.
             - 'count': Updated number of stocks that have contributed to the weekly return.
     """
-    weekly_returns = stock["subfeatures"]["weekly"]["weekly_returns"].items()
-    for week, returns in weekly_returns:
-        if returns is None:
-            continue
+    returns_weekly = stock["subfeatures"]["weekly"]["returns_weekly"].items()
+    for week, returns in returns_weekly:
         if week not in market_return_details:
-            market_return_details[week] = {"sum": returns, "count": 1}
-        else:
+            market_return_details[week] = {"sum": 0, "count": 0}
+
+        # Add the value if returns are not None
+        if returns is not None:
             market_return_details[week]["sum"] += returns
             market_return_details[week]["count"] += 1
+
     return market_return_details

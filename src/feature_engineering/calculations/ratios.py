@@ -75,7 +75,6 @@ def calculate_ep_sp_annual(income_statement_annual, market_caps):
 
         # The financial statements go further than the earliest marketcap (explained in most cases by company going public after the dates of financial statements releases)
         if date_fiscal_year < market_caps[-1]["date"]:
-            print("here")
             ep[fiscal_year] = None
             sp[fiscal_year] = None
 
@@ -90,8 +89,8 @@ def calculate_ep_sp_annual(income_statement_annual, market_caps):
             ep[fiscal_year] = None
             sp[fiscal_year] = None
         else:
-            ep[fiscal_year] = net_income / market_cap, RETURN_ROUND_TO
-            sp[fiscal_year] = revenue / market_cap, RETURN_ROUND_TO
+            ep[fiscal_year] = net_income / market_cap
+            sp[fiscal_year] = revenue / market_cap
 
     return ep, sp
 
@@ -173,7 +172,6 @@ def calculate_ep_sp_quarterly(income_statement_quarterly, market_caps):
 
         # The financial statements go further than the earliest marketcap (explained in most cases by company going public after the dates of financial statements releases)
         if date < market_caps[-1]["date"]:
-            print("here")
             ep[year_quarter] = None
             sp[year_quarter] = None
 
@@ -188,7 +186,6 @@ def calculate_ep_sp_quarterly(income_statement_quarterly, market_caps):
             ep[year_quarter] = None
             sp[year_quarter] = None
         else:
-            print(net_income, market_cap)
             ep[year_quarter] = net_income / market_cap
             sp[year_quarter] = revenue / market_cap
 

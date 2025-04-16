@@ -1,4 +1,9 @@
 data/stocks/raw/*
 data/stocks/processed/*
+data/tests/*
+data/tests/processed/*
 .env
 venv
+notebooks/*
+cspell.json
+**/__pycache__/
