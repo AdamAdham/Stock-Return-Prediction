@@ -6,14 +6,21 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 DATA_DIR = PROJECT_ROOT / "data"
-RAW_DIR = DATA_DIR / "stocks" / "raw"
-PROCESSED_DIR = DATA_DIR / "stocks" / "processed"
-RAW_DIR_TEST = DATA_DIR / "tests" / "raw"
-PROCESSED_DIR_TEST = DATA_DIR / "tests" / "processed"
+
+# Stocks
+STOCKS_DIR = DATA_DIR / "stocks"
+RAW_DIR = STOCKS_DIR / "raw"
+PROCESSED_DIR = STOCKS_DIR / "processed"
+
+# Tests
+TEST_DIR = DATA_DIR / "tests"
+AGGREGATE_DIR_TEST = TEST_DIR / "aggregate"
+RAW_DIR_TEST = TEST_DIR / "raw"
+PROCESSED_DIR_TEST = TEST_DIR / "processed"
 REFERENCE_DIR = DATA_DIR / "reference"
 
-STOCKS_STATS_TEST = DATA_DIR / "stocks_stats_test"
-STOCKS_STATS_TEST = DATA_DIR / "stocks_test"
+# Metadata
+METADATA_DIR = DATA_DIR / "metadata"
 
 # Constant Values
 ENABLE_TIMING = False

@@ -237,6 +237,6 @@ def calculate_beta_betasq(
             betasq_by_month[months_sorted[current_index]] = None
 
         start += increment
-        current += 1
+        current_index += 1
 
     return beta_by_month, betasq_by_month

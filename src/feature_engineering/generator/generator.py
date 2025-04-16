@@ -273,10 +273,13 @@ def enrich_stocks_with_features(
     ----------
     start_index : int, optional
         Index to start processing stocks from. Defaults to 0.
+
     end_index : int, optional
         Index to stop processing stocks at (exclusive). Defaults to None (process all remaining stocks).
+
     input_directory : Path or str, optional
         Directory containing raw stock data JSON files. Defaults to `RAW_DIR`.
+
     output_directory : Path or str, optional
         Directory to save enriched stock data. Defaults to `PROCESSED_DIR`.
 
@@ -360,7 +363,10 @@ def enrich_stocks_with_features(
     # Get average of weekly market returns
     market_returns_weekly = {}
     for week, returns in market_return_details.items():
-        market_returns_weekly[week] = returns["sum"] / returns["count"]
+
+        market_returns_weekly[week] = (
+            returns["sum"] / returns["count"] if returns["count"] != 0 else None
+        )  # Prevent division by zero
 
     return {"indmom": indmom, "market_returns_weekly": market_returns_weekly}, {
         "success": success,
@@ -391,14 +397,19 @@ def enrich_stocks_with_aggregate_features(
     ----------
     indmom : dict
         Dictionary containing industry momentum data of the form {sic_code: {month: avg_industry_momentum}}.
+
     market_returns_weekly : dict
         Dictionary containing average weekly market returns of the form {week: return}.
+
     start_index : int, optional
         Index to begin processing stocks from. Defaults to 0.
+
     end_index : int, optional
         Index to stop processing stocks at (inclusive). Defaults to None (process all).
+
     input_directory : Path or str, optional
         Directory containing raw stock data JSON files. Defaults to `PROCESSED_DIR`.
+
     output_directory : Path or str, optional
         Directory to save enriched stock data. Defaults to `PROCESSED_DIR`. (so will overwrite the data)
 
@@ -427,13 +438,14 @@ def enrich_stocks_with_aggregate_features(
             break  # Stop if index exceeded specified end_index
 
         try:
+            print(f"Stock {stock['symbol']} , Index {i} started")
+
+            # Extracting variables
             subfeatures = stock["subfeatures"]
             weeks_sorted = subfeatures["lists"]["weeks_sorted"]
             months_sorted = subfeatures["lists"]["months_sorted"]
             month_latest_week = subfeatures["monthly"]["month_latest_week"]
             returns_weekly = subfeatures["weekly"]["returns_weekly"]
-
-            print("calculate_beta_betasq, current=False")
 
             # Calculate beta and betasq
             beta, betasq = calculate_beta_betasq(
@@ -444,8 +456,6 @@ def enrich_stocks_with_aggregate_features(
                 market_returns_weekly,
             )
 
-            print("calculate_beta_betasq, current=True")
-
             beta_current, betasq_current = calculate_beta_betasq(
                 weeks_sorted,
                 months_sorted,
@@ -455,8 +465,6 @@ def enrich_stocks_with_aggregate_features(
                 current=True,
             )
 
-            print("calculate_idiovol, current=False")
-
             # Calculate idiovol
             idiovol = calculate_idiovol(
                 weeks_sorted,
@@ -465,8 +473,6 @@ def enrich_stocks_with_aggregate_features(
                 returns_weekly,
                 market_returns_weekly,
             )
-
-            print("calculate_idiovol, current=True")
 
             idiovol_current = calculate_idiovol(
                 weeks_sorted,
@@ -478,12 +484,12 @@ def enrich_stocks_with_aggregate_features(
             )
 
             # Add beta, betasq, and idiovol to stock
-            stock["features"]["beta"] = beta
-            stock["features"]["beta_current"] = beta_current
-            stock["features"]["betasq"] = betasq
-            stock["features"]["betasq_current"] = betasq_current
-            stock["features"]["idiovol"] = idiovol
-            stock["features"]["idiovol_current"] = idiovol_current
+            stock["features"]["monthly"]["beta"] = beta
+            stock["features"]["monthly"]["beta_current"] = beta_current
+            stock["features"]["monthly"]["betasq"] = betasq
+            stock["features"]["monthly"]["betasq_current"] = betasq_current
+            stock["features"]["monthly"]["idiovol"] = idiovol
+            stock["features"]["monthly"]["idiovol_current"] = idiovol_current
 
             sic_2 = stock["sicCode_2"]
             stock["features"]["indmom"] = indmom[sic_2]
@@ -492,8 +498,10 @@ def enrich_stocks_with_aggregate_features(
             output_path = output_directory / f"{stock['symbol']}.json"
             write_json(output_path, stock)
             success.append(stock["symbol"])
+            print(f"Stock {stock['symbol']} , Index {i} saved")
 
         except Exception as e:
+            print("here")
             # Print detailed error information
             error_message = (
                 f"Error processing stock {stock.get('symbol', 'N/A')} at index {i}."

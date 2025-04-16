@@ -183,8 +183,6 @@ def get_weekly_monthly_summary(prices_daily):
             dollar_volume_monthly[month]["count"] += 1
 
         # Weekly returns, latest week handling
-        year, week_number, _ = date.isocalendar()
-        week_key = f"{year}-{week_number:02d}"  # (year, week_number), str due to not being able to dump json
         if week_key not in prices_weekly:
             prices_weekly[week_key] = price
             weeks_sorted.append(week_key)
@@ -709,11 +707,12 @@ def handle_market_returns_weekly(stock, market_return_details):
     """
     returns_weekly = stock["subfeatures"]["weekly"]["returns_weekly"].items()
     for week, returns in returns_weekly:
-        if returns is None:
-            continue
         if week not in market_return_details:
-            market_return_details[week] = {"sum": returns, "count": 1}
-        else:
+            market_return_details[week] = {"sum": 0, "count": 0}
+
+        # Add the value if returns are not None
+        if returns is not None:
             market_return_details[week]["sum"] += returns
             market_return_details[week]["count"] += 1
+
     return market_return_details
