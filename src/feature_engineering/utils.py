@@ -279,7 +279,6 @@ def get_shares_monthly(outstanding_shares):
         shares = outstanding_shares[key_date]
         if month not in shares_monthly:
             shares_monthly[month] = shares
-    print("get_shares_monthly", "shares_monthly", shares_monthly)
 
     return shares_monthly
 
