@@ -134,7 +134,6 @@ def get_features(stock):
     subfeatures["lists"]["months_sorted"] = months_sorted
     subfeatures["lists"]["weeks_sorted"] = weeks_sorted
     subfeatures["monthly"]["prices_monthly"] = prices_monthly
-    subfeatures["monthly"]["dollar_volume_monthly"] = dollar_volume_monthly
     subfeatures["monthly"]["month_latest_week"] = month_latest_week
     subfeatures["weekly"]["returns_weekly"] = returns_weekly
 

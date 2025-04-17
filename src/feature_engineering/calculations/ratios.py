@@ -1,3 +1,4 @@
+from collections import defaultdict
 from src.feature_engineering.utils import calculate_return
 
 from src.config.settings import RETURN_ROUND_TO
@@ -9,6 +10,10 @@ def calculate_ep_sp_annual(income_statement_annual, market_caps):
 
     The EP ratio is calculated as the net income divided by the market capitalization for a given fiscal year.
     The SP ratio is calculated as the revenue divided by the market capitalization for a given fiscal year.
+
+    An important distinction is the difference between "date" (date of financial statement itself) and "acceptedData" the
+    date that financial statement is publicly available. So the ratio will use the market cap at "date" ; however, the data
+    will be available after the "acceptedDate"
 
     Parameters
     ----------
@@ -102,6 +107,10 @@ def calculate_ep_sp_quarterly(income_statement_quarterly, market_caps):
     The EP ratio is calculated as the net income divided by the market capitalization for a given fiscal year.
     The SP ratio is calculated as the revenue divided by the market capitalization for a given fiscal year.
 
+    An important distinction is the difference between "date" (date of financial statement itself) and "acceptedData" the
+    date that financial statement is publicly available. So the ratio will use the market cap at "date" ; however, the data
+    will be available after the "acceptedDate"
+
     Parameters
     ----------
     income_statement_quarterly : list of dict
@@ -132,6 +141,7 @@ def calculate_ep_sp_quarterly(income_statement_quarterly, market_caps):
     market_cap_index = 0
     ep = {}
     sp = {}
+    date_of_quarter = defaultdict(list)
 
     for income_statement in income_statement_quarterly:
 
