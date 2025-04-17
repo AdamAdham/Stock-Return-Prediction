@@ -10,6 +10,42 @@ python -m src.trial
 
 Explain each stages dict structure
 
+## Last
+
+```json
+    [
+    batch1  [
+        timestep1  [
+            feat1,
+            feat2,
+            featn
+            ]
+        timestep2  [
+            feat1,
+            feat2,
+            featn
+            ]
+        timestep3   [...]
+        ],
+
+    batch1  [
+        timestep1  [
+            feat1,
+            feat2,
+            featn
+            ]
+        timestep2  [
+            feat1,
+            feat2,
+            featn
+            ]
+        timestep3   [...]
+        ]
+    batch3  []
+    batchn  []
+    ]
+```
+
 # Feature engineering
 
 These functions can be combined to reduce the number of passes. However, doing so will decrease code readability. If performance is a priority, consider modifying the functions.
