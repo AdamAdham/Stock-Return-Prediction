@@ -27,10 +27,8 @@ from src.feature_engineering.calculations.risk import (
 )
 
 from src.feature_engineering.calculations.ratios import (
-    calculate_ep_sp_annual,
-    calculate_ep_sp_quarterly,
-    calculate_agr_annual,
-    calculate_agr_quarterly,
+    calculate_ep_sp,
+    calculate_agr,
 )
 
 from src.feature_engineering.utils import (
@@ -212,22 +210,25 @@ def get_features(stock):
         )
 
         ep_annual, sp_annual = time_call(
-            calculate_ep_sp_annual, income_statements_annual, market_caps
+            calculate_ep_sp, income_statements_annual, market_caps
         )
         ep_quarterly, sp_quarterly = time_call(
-            calculate_ep_sp_quarterly, income_statements_quarterly, market_caps
+            calculate_ep_sp, income_statements_quarterly, market_caps
         )
 
-        features["annual"]["ep"] = ep_annual
-        features["annual"]["sp"] = sp_annual
-        features["quarterly"]["ep"] = ep_quarterly
-        features["quarterly"]["sp"] = sp_quarterly
+        features["annual"]["ep_annual"] = ep_annual
+        features["annual"]["sp_annual"] = sp_annual
+        features["quarterly"]["ep_quarterly"] = ep_quarterly
+        features["quarterly"]["sp_quarterly"] = sp_quarterly
 
         subfeatures["monthly"]["market_cap"] = market_cap_monthly
     else:
         features["monthly"]["mve"] = None
-        features["annual"]["ep"] = None
-        features["annual"]["sp"] = None
+        features["monthly"]["mve_current"] = None
+        features["annual"]["ep_annual"] = None
+        features["annual"]["sp_annual"] = None
+        features["quarterly"]["ep_quarterly"] = None
+        features["quarterly"]["sp_quarterly"] = None
         subfeatures["monthly"]["market_cap"] = None
 
     features["monthly"]["dolvol"] = time_call(
@@ -242,9 +243,9 @@ def get_features(stock):
         calculate_retvol_std, daily_returns_monthly
     )
 
-    features["annual"]["agr"] = time_call(calculate_agr_annual, balance_sheet_annual)
-    features["quarterly"]["agr"] = time_call(
-        calculate_agr_quarterly, balance_sheet_quarterly
+    features["annual"]["agr_annual"] = time_call(calculate_agr, balance_sheet_annual)
+    features["quarterly"]["agr_quarterly"] = time_call(
+        calculate_agr, balance_sheet_quarterly
     )
 
     stock["features"] = features

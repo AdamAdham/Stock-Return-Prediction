@@ -22,6 +22,10 @@ REFERENCE_DIR = DATA_DIR / "reference"
 # Metadata
 METADATA_DIR = DATA_DIR / "metadata"
 
+# Macroeconomic data
+MACRO_DIR = DATA_DIR / "macroeconomics"
+MACRO_DATA = MACRO_DIR / "macroeconomics_data.csv"
+
 # Constant Values
 ENABLE_TIMING = False
 RETURN_ROUND_TO = None
