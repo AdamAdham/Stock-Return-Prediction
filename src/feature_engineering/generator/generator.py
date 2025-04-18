@@ -224,8 +224,11 @@ def get_features(stock):
         subfeatures["monthly"]["market_cap"] = market_cap_monthly
     else:
         features["monthly"]["mve"] = None
+        features["monthly"]["mve_current"] = None
         features["annual"]["ep_annual"] = None
         features["annual"]["sp_annual"] = None
+        features["quarterly"]["ep_quarterly"] = None
+        features["quarterly"]["sp_quarterly"] = None
         subfeatures["monthly"]["market_cap"] = None
 
     features["monthly"]["dolvol"] = time_call(
