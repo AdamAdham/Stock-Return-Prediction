@@ -166,7 +166,7 @@ def get_weekly_monthly_summary(prices_daily):
 
         price = entry["price"]
         volume = entry["volume"]
-
+        # TODO add if to price if not return None
         dollar_volume = price * volume  # Calculate dollar value
 
         # Monthly prices handling

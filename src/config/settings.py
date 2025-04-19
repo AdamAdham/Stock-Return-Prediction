@@ -11,12 +11,14 @@ DATA_DIR = PROJECT_ROOT / "data"
 STOCKS_DIR = DATA_DIR / "stocks"
 RAW_DIR = STOCKS_DIR / "raw"
 PROCESSED_DIR = STOCKS_DIR / "processed"
+DATAFRAMES_DIR = STOCKS_DIR / "dataframes"
 
 # Tests
 TEST_DIR = DATA_DIR / "tests"
 AGGREGATE_DIR_TEST = TEST_DIR / "aggregate"
 RAW_DIR_TEST = TEST_DIR / "raw"
 PROCESSED_DIR_TEST = TEST_DIR / "processed"
+DATAFRAME_DIR_TEST = TEST_DIR / "dataframes"
 REFERENCE_DIR = DATA_DIR / "reference"
 
 # Metadata

@@ -87,12 +87,59 @@ def create_sequences(df, target_column, timesteps):
         x[i] = data[i : i + timesteps]
         y[i] = data[i + timesteps, target_idx]
 
-    return x, y
+    # Get the timesteps
+    time = np.array(df_sorted.index[timesteps:])
+
+    return time, x, y
 
 
 def create_sequences_all(
     macro_df, target_column, timesteps, input_directory=PROCESSED_DIR
 ):
+    """
+    Generates sequences of features and corresponding target values for all stocks, including macroeconomic data.
+
+    This function:
+    - Loads preprocessed stock data from a specified directory.
+    - Concatenates monthly, quarterly, annual stock features and subfeatures (excluding "month_latest_week"),
+      along with provided macroeconomic features.
+    - Constructs input sequences of shape (timesteps, num_features) and associated target values using
+      a sliding window approach, for each stock independently.
+    - Returns combined training data from all stocks.
+
+    Parameters
+    ----------
+    macro_df : pandas.DataFrame
+        A DataFrame containing macroeconomic features aligned by time index (e.g., month).
+
+    target_column : str
+        The name of the target column used for prediction.
+
+    timesteps : int
+        The number of past time steps to use as input features in each sequence.
+
+    input_directory : str, optional
+        The directory path where processed stock files are stored (default is `PROCESSED_DIR`).
+
+    Returns
+    -------
+    tuple of np.ndarray
+        - x_all : ndarray of shape (total_samples, timesteps, num_features)
+            The complete array of input sequences from all stocks.
+
+        - y_all : ndarray of shape (total_samples,)
+            The corresponding target values for each input sequence.
+
+    Notes
+    -----
+    - This function avoids pre-allocating NumPy arrays due to varying data availability across stocks;
+      it uses Python lists and converts them to arrays at the end.
+    - Each stock's features are processed independently to allow for differences in available data.
+    - Feature concatenation includes: monthly, quarterly, annual stock features, selected subfeatures,
+      and the same macroeconomic data applied to all stocks.
+    - The function uses `create_sequences()` internally to perform sequence construction per stock.
+    """
+
     stocks = load_all_stocks(input_directory)
 
     # Why not np.array? -> Because concatenation is computationally and memory expensive due to not knowing the shape of the array
@@ -124,7 +171,7 @@ def create_sequences_all(
 
         # Create array with shape (batch, timesteps, features) and add to the rest of the other stock sequences
         # to still have the shape (batch, timesteps, features)
-        x, y = create_sequences(features_conc, target_column, timesteps)
+        time, x, y = create_sequences(features_conc, target_column, timesteps)
         x_all.extend(x)
         y_all.extend(y)
 
