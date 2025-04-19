@@ -89,9 +89,10 @@ def get_stock_profiles(stocks_sic_codes, stock_list):
 
     for stock in stocks_sic_codes:
         symbol = stock.get("symbol")
+        sic_2 = stock["sicCode"][0:2]
         if (
             symbol in stock_lookup
-            and stock["sicCode"][0:2] in sic_industries.keys()
+            and sic_2 in sic_industries.keys()
             and stock_lookup[symbol]["type"] == "stock"
             and "." not in symbol
         ):
@@ -103,8 +104,9 @@ def get_stock_profiles(stocks_sic_codes, stock_list):
             # Merge the stock stock_list with exchange details
             stock.update(
                 {
-                    "sicCode_2": stock["sicCode"][0:2],
-                    "sicIndustry": sic_industries.get(stock["sicCode"][0:2], "Unknown"),
+                    "sicCode_2": sic_2,
+                    "sicIndustry": sic_industries.get(sic_2, "Unknown"),
+                    "sicDivision": get_sic_division(sic_2),
                     "exchange": stock_details["exchange"],
                     "exchangeShortName": stock_details["exchangeShortName"],
                     "type": stock_details["type"],
@@ -128,3 +130,113 @@ def get_stock_profiles(stocks_sic_codes, stock_list):
     ]
 
     return updated_stocks_sic_codes, not_in_stock_symbols
+
+
+def get_sic_division(sic_2):
+    """
+    Maps a 2-digit Standard Industry Classification (SIC) code to its corresponding industry division.
+
+    This function takes a 2-digit SIC code and returns the corresponding industry division as per the
+    mapping defined in the function. The SIC code is used to classify industries based on the type of
+    economic activity.
+
+    Data from https://www.osha.gov/data/sic-manual
+
+    Parameters
+    ----------
+    sic_2 : str
+        A 2-digit string representing the SIC code (e.g., "01", "10", "20").
+
+    Returns
+    -------
+    str
+        A string describing the corresponding industry division for the given SIC code.
+    """
+
+    industry_mapping = {
+        "01": "Division A: Agriculture, Forestry, And Fishing",
+        "02": "Division A: Agriculture, Forestry, And Fishing",
+        "07": "Division A: Agriculture, Forestry, And Fishing",
+        "08": "Division A: Agriculture, Forestry, And Fishing",
+        "09": "Division A: Agriculture, Forestry, And Fishing",
+        "10": "Division B: Mining",
+        "12": "Division B: Mining",
+        "13": "Division B: Mining",
+        "14": "Division B: Mining",
+        "15": "Division C: Construction",
+        "16": "Division C: Construction",
+        "17": "Division C: Construction",
+        "20": "Division D: Manufacturing",
+        "21": "Division D: Manufacturing",
+        "22": "Division D: Manufacturing",
+        "23": "Division D: Manufacturing",
+        "24": "Division D: Manufacturing",
+        "25": "Division D: Manufacturing",
+        "26": "Division D: Manufacturing",
+        "27": "Division D: Manufacturing",
+        "28": "Division D: Manufacturing",
+        "29": "Division D: Manufacturing",
+        "30": "Division D: Manufacturing",
+        "31": "Division D: Manufacturing",
+        "32": "Division D: Manufacturing",
+        "33": "Division D: Manufacturing",
+        "34": "Division D: Manufacturing",
+        "35": "Division D: Manufacturing",
+        "36": "Division D: Manufacturing",
+        "37": "Division D: Manufacturing",
+        "38": "Division D: Manufacturing",
+        "39": "Division D: Manufacturing",
+        "40": "Division E: Transportation, Communications, Electric, Gas, And Sanitary Services",
+        "41": "Division E: Transportation, Communications, Electric, Gas, And Sanitary Services",
+        "42": "Division E: Transportation, Communications, Electric, Gas, And Sanitary Services",
+        "43": "Division E: Transportation, Communications, Electric, Gas, And Sanitary Services",
+        "44": "Division E: Transportation, Communications, Electric, Gas, And Sanitary Services",
+        "45": "Division E: Transportation, Communications, Electric, Gas, And Sanitary Services",
+        "46": "Division E: Transportation, Communications, Electric, Gas, And Sanitary Services",
+        "47": "Division E: Transportation, Communications, Electric, Gas, And Sanitary Services",
+        "48": "Division E: Transportation, Communications, Electric, Gas, And Sanitary Services",
+        "49": "Division E: Transportation, Communications, Electric, Gas, And Sanitary Services",
+        "50": "Division F: Wholesale Trade",
+        "51": "Division F: Wholesale Trade",
+        "52": "Division G: Retail Trade",
+        "53": "Division G: Retail Trade",
+        "54": "Division G: Retail Trade",
+        "55": "Division G: Retail Trade",
+        "56": "Division G: Retail Trade",
+        "57": "Division G: Retail Trade",
+        "58": "Division G: Retail Trade",
+        "59": "Division G: Retail Trade",
+        "60": "Division H: Finance, Insurance, And Real Estate",
+        "61": "Division H: Finance, Insurance, And Real Estate",
+        "62": "Division H: Finance, Insurance, And Real Estate",
+        "63": "Division H: Finance, Insurance, And Real Estate",
+        "64": "Division H: Finance, Insurance, And Real Estate",
+        "65": "Division H: Finance, Insurance, And Real Estate",
+        "67": "Division H: Finance, Insurance, And Real Estate",
+        "70": "Division I: Services",
+        "72": "Division I: Services",
+        "73": "Division I: Services",
+        "75": "Division I: Services",
+        "76": "Division I: Services",
+        "78": "Division I: Services",
+        "79": "Division I: Services",
+        "80": "Division I: Services",
+        "81": "Division I: Services",
+        "82": "Division I: Services",
+        "83": "Division I: Services",
+        "84": "Division I: Services",
+        "86": "Division I: Services",
+        "87": "Division I: Services",
+        "88": "Division I: Services",
+        "89": "Division I: Services",
+        "91": "Division J: Public Administration",
+        "92": "Division J: Public Administration",
+        "93": "Division J: Public Administration",
+        "94": "Division J: Public Administration",
+        "95": "Division J: Public Administration",
+        "96": "Division J: Public Administration",
+        "97": "Division J: Public Administration",
+        "99": "Division J: Public Administration",
+    }
+
+    return industry_mapping[sic_2]
