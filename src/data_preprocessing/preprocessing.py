@@ -26,6 +26,50 @@ def format_macro_data():
     return macro
 
 
+def add_macro_data(df, macro_data):
+    """
+    Appends macroeconomic data to a stock-specific DataFrame by aligning on the date index.
+
+    This function filters the `macro_data` DataFrame to match the date range of the `df` DataFrame
+    (i.e., the stock data), and then concatenates the filtered macroeconomic data to the stock data
+    along the columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        A DataFrame containing stock-specific features with a DateTime index.
+
+    macro_data : pd.DataFrame
+        A DataFrame containing macroeconomic indicators, also indexed by DateTime.
+
+    Returns
+    -------
+    pd.DataFrame
+        A new DataFrame resulting from the horizontal concatenation of the original stock data and
+        the filtered macroeconomic data, aligned by index.
+
+    Notes
+    -----
+    - It is assumed that both `df` and `macro_data` have a DateTime index.
+    - Only macroeconomic rows within the date range of the stock data will be included.
+
+    Example
+    -------
+    >>> add_macro_data(stock_df, macro_df)
+    returns a DataFrame with both stock and relevant macroeconomic features.
+    """
+
+    # Remove all dates that are before the earliest date and after the latest date for that stock
+    earliest_date = df.index[0]
+    latest_date = df.index[-1]
+    macro_filtered = macro_data[
+        (macro_data.index >= earliest_date) & (macro_data.index <= latest_date)
+    ]
+    df_conc = pd.concat([df, macro_filtered], axis=1)
+
+    return df_conc
+
+
 def json_dataframe_all(
     start_index=0,
     end_index=None,
@@ -73,9 +117,9 @@ def json_dataframe_all(
     }
 
 
-def json_to_dataframe(stock, macro_data):
+def json_to_dataframe(stock):
     """
-    Convert a stock's JSON data and macroeconomic data into a combined pandas DataFrame.
+    Convert a stock's JSON data into pandas DataFrame.
 
     Parameters
     ----------
@@ -87,15 +131,11 @@ def json_to_dataframe(stock, macro_data):
             - stock["features"]["annual"]: Annual features as a dict.
             - stock["subfeatures"]["monthly"]: Monthly subfeatures as a dict.
 
-    macro_data : pandas.DataFrame
-        A DataFrame containing macroeconomic indicators indexed by date (must be datetime index).
-        Only rows with dates later than or equal to the earliest date in the stock's features are included.
-
     Returns
     -------
     pandas.DataFrame
-        A concatenated DataFrame combining the stock's features, subfeatures, and filtered macroeconomic data.
-        The result is aligned by date index and ready for further processing or model input.
+        A concatenated DataFrame combining the stock's features, subfeatures.
+        The result is aligned and sorted (earliest to latest) by date index and ready for further processing or model input.
     """
     df_features = pd.DataFrame(stock["features"]["monthly"])
     df_quarterly = pd.DataFrame(stock["features"]["quarterly"])
@@ -115,16 +155,7 @@ def json_to_dataframe(stock, macro_data):
     df_sorted = df_temp.sort_index(ascending=True)
     df_sorted
 
-    # Remove all dates that are before the earliest date and after the latest date for that stock
-    earliest_date = df_sorted.index[0]
-    latest_date = df_sorted.index[-1]
-    macro_filtered = macro_data[
-        (macro_data.index >= earliest_date) & (macro_data.index <= latest_date)
-    ]
-    df_conc = pd.concat([df_sorted, macro_filtered], axis=1)
-    df_conc
-
-    return df_conc
+    return df_sorted
 
 
 def fill_quarterly_annual(df, inplace=True):

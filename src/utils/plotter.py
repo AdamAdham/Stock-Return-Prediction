@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 
 
 def plot_model_history(history):
@@ -196,3 +197,51 @@ def plot_real_pred(y, y_pred, graph_title="Actual vs Predicted"):
     plt.title(graph_title)
     plt.legend()
     plt.show()
+
+
+def basic_eda(
+    df, categorical_features=[], hist_bins=30, correlation=True, distribution=True
+):
+    """
+    Perform basic exploratory data analysis (EDA) on a given DataFrame.
+
+    Parameters:
+    df (pd.DataFrame): The dataset to analyze.
+    categorical_features (array[string]): names of the categorical features in the dataframe
+    """
+    print("\n--- Dataset Overview ---")
+
+    print(f"Shape: {df.shape}")
+    print(f"Columns: {df.columns}")
+    print()
+    print(f"Types: \n{df.dtypes}")
+
+    print("\n--- Summary Statistics ---")
+    print(df.describe(include="all"))
+
+    print("\n--- Missing Values ---")
+    print(df.isnull().sum())
+
+    print("\n--- Duplicate Rows ---")
+    print(df.duplicated().sum())
+
+    if correlation:
+        print("\n--- Correlation Matrix ---")
+        plt.figure(figsize=(10, 6))
+        sns.heatmap(df.corr(numeric_only=True), annot=True, cmap="coolwarm", fmt=".2f")
+        plt.title("Feature Correlation Matrix")
+        plt.show()
+
+    if distribution:
+        print("\n--- Feature Distributions ---")
+        df.hist(figsize=(12, 10), bins=hist_bins, edgecolor="cyan", density=True)
+        plt.tight_layout()
+        plt.show()
+
+    if len(categorical_features) > 0:
+        print("\n--- Categorical Feature Counts ---")
+        for col in categorical_features:
+            plt.figure(figsize=(8, 4))
+            sns.countplot(y=df[col], order=df[col].value_counts().index)
+            plt.title(f"Distribution of {col}")
+            plt.show()
