@@ -18,6 +18,9 @@ def format_macro():
     # Remove commas from column Index
     macro["Index"] = macro["Index"].str.replace(",", "")
 
+    # Remove all the data that will never be used since the earliest stock data point is on 1962-01-02
+    macro = macro[macro.index > "1961-12-31"]
+
     return macro
 
 
@@ -176,3 +179,78 @@ def create_sequences_all(
         y_all.extend(y)
 
     return np.array(x_all), np.array(y_all)
+
+
+def split_sequences(time, x, y, train_size=0.7, val_size=0.15):
+    """
+    Splits time series data into training, validation, and test sets.
+
+    This function divides the input sequences (`x`, `y`) and their corresponding time indices into
+    training, validation, and testing subsets according to the specified proportions. The split is
+    done sequentially, preserving the temporal order of the data.
+
+    Parameters
+    ----------
+    time : array-like
+        An array or list of time indices corresponding to each sequence sample.
+
+    x : np.ndarray
+        A NumPy array of input sequences with shape (num_samples, timesteps, num_features).
+
+    y : np.ndarray
+        A NumPy array of target values with shape (num_samples,).
+
+    train_size : float, optional
+        Proportion of the data to be used for training (default is 0.7).
+
+    val_size : float, optional
+        Proportion of the data to be used for validation (default is 0.15).
+        The test set will use the remaining data.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the following 9 elements:
+        - time_train : array-like
+        - time_val : array-like
+        - time_test : array-like
+        - x_train : np.ndarray
+        - x_val : np.ndarray
+        - x_test : np.ndarray
+        - y_train : np.ndarray
+        - y_val : np.ndarray
+        - y_test : np.ndarray
+
+    Notes
+    -----
+    - The remaining data after allocating the train and validation sets will be used for the test set.
+    - The function assumes that `x`, `y`, and `time` are sorted in chronological order.
+    - Copy this `time_train, time_val, time_test, x_train, x_val, x_test, y_train, y_val, y_test` to use.
+    """
+
+    train_size = int(len(x) * train_size)
+    val_size = int(len(x) * val_size)
+
+    x_train = x[:train_size]
+    y_train = y[:train_size]
+    time_train = time[:train_size]
+
+    x_val = x[train_size : train_size + val_size]
+    y_val = y[train_size : train_size + val_size]
+    time_val = time[train_size : train_size + val_size]
+
+    x_test = x[train_size + val_size :]
+    y_test = y[train_size + val_size :]
+    time_test = time[train_size + val_size :]
+
+    return (
+        time_train,
+        time_val,
+        time_test,
+        x_train,
+        x_val,
+        x_test,
+        y_train,
+        y_val,
+        y_test,
+    )

@@ -28,19 +28,19 @@ def format_macro_data():
 
 def add_macro_data(df, macro_data):
     """
-    Appends macroeconomic data to a stock-specific DataFrame by aligning on the date index.
+    Appends macroeconomic data to a stock-specific DataFrame by aligning on the months "YYYY-MM" index.
 
-    This function filters the `macro_data` DataFrame to match the date range of the `df` DataFrame
+    This function filters the `macro_data` DataFrame to match the months range of the `df` DataFrame
     (i.e., the stock data), and then concatenates the filtered macroeconomic data to the stock data
     along the columns.
 
     Parameters
     ----------
     df : pd.DataFrame
-        A DataFrame containing stock-specific features with a DateTime index.
+        A DataFrame containing stock-specific features with a month index.
 
     macro_data : pd.DataFrame
-        A DataFrame containing macroeconomic indicators, also indexed by DateTime.
+        A DataFrame containing macroeconomic indicators, also indexed by month.
 
     Returns
     -------
@@ -50,16 +50,10 @@ def add_macro_data(df, macro_data):
 
     Notes
     -----
-    - It is assumed that both `df` and `macro_data` have a DateTime index.
-    - Only macroeconomic rows within the date range of the stock data will be included.
-
-    Example
-    -------
-    >>> add_macro_data(stock_df, macro_df)
-    returns a DataFrame with both stock and relevant macroeconomic features.
+    - It is assumed that both `df` and `macro_data` have a month index.
     """
 
-    # Remove all dates that are before the earliest date and after the latest date for that stock
+    # Remove all months that are before the earliest months and after the latest months for that stock
     earliest_date = df.index[0]
     latest_date = df.index[-1]
     macro_filtered = macro_data[

@@ -38,45 +38,73 @@ def plot_model_history(history):
 
 
 def plot_pred_real_timeseries_train_val_test(
-    model,
     time,
     time_train,
-    X_train,
-    y_train,
     time_val,
-    X_val,
-    y_val,
     time_test,
-    X_test,
+    y_train,
+    y_val,
     y_test,
+    y_pred_train,
+    y_pred_val,
+    y_pred_test,
     inverse_scaler=None,
     fig_size=(16, 8),
     x_ticks=20,
 ):
     """
-    Plots the actual and predicted time series values for training, validation, and test datasets.
+    Plots actual and predicted time series values for the training, validation, and test sets.
 
-    Args:
-        model (tensorflow.keras.Model): The trained model used for predictions.
-        time (array-like): The complete time index for reference.
-        time_train (array-like): Time indices for the training set.
-        X_train (array-like): Input features for the training set.
-        y_train (array-like): Actual target values for the training set.
-        time_val (array-like): Time indices for the validation set.
-        X_val (array-like): Input features for the validation set.
-        y_val (array-like): Actual target values for the validation set.
-        time_test (array-like): Time indices for the test set.
-        X_test (array-like): Input features for the test set.
-        y_test (array-like): Actual target values for the test set.
-        inverse_scaler (function, optional): Function to inverse transform the predicted values.
+    This function visualizes how well the model's predictions align with actual values across different
+    dataset splits. It allows optional inverse scaling of the values for interpretation in original scale.
 
-    Displays:
-        - A time series plot comparing actual vs. predicted values for train, validation, and test sets.
+    Parameters
+    ----------
+    time : array-like
+        Full sequence of time indices used to generate the x-axis tick labels.
+
+    time_train : array-like
+        Time indices corresponding to the training set.
+
+    time_val : array-like
+        Time indices corresponding to the validation set.
+
+    time_test : array-like
+        Time indices corresponding to the test set.
+
+    y_train : np.ndarray
+        Actual target values for the training set.
+
+    y_val : np.ndarray
+        Actual target values for the validation set.
+
+    y_test : np.ndarray
+        Actual target values for the test set.
+
+    y_pred_train : np.ndarray
+        Predicted target values for the training set.
+
+    y_pred_val : np.ndarray
+        Predicted target values for the validation set.
+
+    y_pred_test : np.ndarray
+        Predicted target values for the test set.
+
+    inverse_scaler : callable, optional
+        Function to inverse-transform predicted and actual values (e.g., from a scaler).
+        If None, no transformation is applied.
+
+    fig_size : tuple, optional
+        Figure size for the plot (default is (16, 8)).
+
+    x_ticks : int, optional
+        Number of x-axis ticks to display (default is 20).
+
+    Returns
+    -------
+    None
+        Displays a matplotlib plot comparing actual vs predicted values over time.
     """
-
-    y_pred_train = model.predict(X_train)
-    y_pred_val = model.predict(X_val)
-    y_pred_test = model.predict(X_test)
 
     if inverse_scaler != None:
         y_train = inverse_scaler(y_train)
@@ -168,37 +196,6 @@ def plot_pred_real_timeseries(
     plt.show()
 
 
-def plot_real_pred(y, y_pred, graph_title="Actual vs Predicted"):
-    """
-    Plots the actual vs. predicted values in a scatter plot.
-
-    Args:
-        y (array-like): Actual target values.
-        y_pred (array-like): Predicted target values.
-        graph_title (str, optional): Title for the plot. Default is "Actual vs Predicted".
-
-    Displays:
-        - A scatter plot comparing actual vs. predicted values.
-        - A 45-degree reference line for perfect predictions.
-    """
-
-    # Plot actual vs. predicted values
-    plt.figure(figsize=(8, 5))
-    plt.scatter(y, y_pred, alpha=0.5, label="Predictions")
-    plt.plot(
-        [np.nanmin(y), np.nanmax(y)],
-        [np.nanmin(y), np.nanmax(y)],
-        "r",
-        linestyle="--",
-        label="Perfect Fit",
-    )  # 45-degree line
-    plt.xlabel("Actual Values")
-    plt.ylabel("Predicted Values")
-    plt.title(graph_title)
-    plt.legend()
-    plt.show()
-
-
 def basic_eda(
     df, categorical_features=[], hist_bins=30, correlation=True, distribution=True
 ):
@@ -234,7 +231,25 @@ def basic_eda(
 
     if distribution:
         print("\n--- Feature Distributions ---")
-        df.hist(figsize=(12, 10), bins=hist_bins, edgecolor="cyan", density=True)
+        numeric_cols = df.select_dtypes(include=["number"]).columns
+        n_cols = 3
+        n_rows = (
+            len(numeric_cols) + n_cols - 1
+        ) // n_cols  # ceiling of len(numeric_cols) / n_cols)
+
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 5, n_rows * 4))
+        axes = axes.flatten()
+
+        for i, col in enumerate(numeric_cols):
+            sns.histplot(df[col], kde=True, bins=hist_bins, ax=axes[i])
+            axes[i].set_title(f"Distribution of {col}")
+            axes[i].set_xlabel(col)
+            axes[i].set_ylabel("Density")
+
+        # Remove unused subplots if there are any
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
+
         plt.tight_layout()
         plt.show()
 
