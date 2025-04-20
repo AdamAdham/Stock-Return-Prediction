@@ -3,38 +3,35 @@ import numpy as np
 import seaborn as sns
 
 
-def plot_model_history(history):
+import matplotlib.pyplot as plt
+
+
+def plot_model_history(history, metrics=["loss", "mean_absolute_error"]):
     """
-    Plots the training and validation loss (Mean Squared Error) and Mean Absolute Error (MAE)
-    from the model's training history.
+    Plots the training and validation metrics from the model's training history.
 
     Args:
         history (tensorflow.python.keras.callbacks.History): The history object returned from model training.
+        metrics (list of str): List of metrics to plot (default includes "loss" and "mean_absolute_error").
 
     Displays:
-        - A plot of training vs. validation loss (MSE).
-        - A plot of training vs. validation Mean Absolute Error (MAE).
+        - A plot for each metric specified in the metrics list.
     """
-
-    # Plot loss (Mean Squared Error)
-    plt.figure(figsize=(8, 5))
-    plt.plot(history.history["loss"], label="Training Loss")
-    plt.plot(history.history["val_loss"], label="Validation Loss")
-    plt.xlabel("Epochs")
-    plt.ylabel("MSE Loss")
-    plt.legend()
-    plt.title("Training vs Validation Loss")
-    plt.show()
-
-    # Plot Mean Absolute Error (MAE)
-    plt.figure(figsize=(8, 5))
-    plt.plot(history.history["mean_absolute_error"], label="Training MAE")
-    plt.plot(history.history["val_mean_absolute_error"], label="Validation MAE")
-    plt.xlabel("Epochs")
-    plt.ylabel("MAE")
-    plt.legend()
-    plt.title("Training vs Validation MAE")
-    plt.show()
+    for metric in metrics:
+        if metric in history.history:  # Check if the metric is available in history
+            plt.figure(figsize=(8, 5))
+            plt.plot(history.history[metric], label=f"Training {metric.capitalize()}")
+            plt.plot(
+                history.history[f"val_{metric}"],
+                label=f"Validation {metric.capitalize()}",
+            )
+            plt.xlabel("Epochs")
+            plt.ylabel(metric.capitalize())
+            plt.legend()
+            plt.title(f"Training vs Validation {metric.capitalize()}")
+            plt.show()
+        else:
+            print(f"Warning: Metric '{metric}' not found in the history object.")
 
 
 def plot_pred_real_timeseries_train_val_test(
@@ -48,7 +45,8 @@ def plot_pred_real_timeseries_train_val_test(
     y_pred_train,
     y_pred_val,
     y_pred_test,
-    inverse_scaler=None,
+    inverse_transform=None,
+    reshape_y=False,
     fig_size=(16, 8),
     x_ticks=20,
 ):
@@ -90,7 +88,7 @@ def plot_pred_real_timeseries_train_val_test(
     y_pred_test : np.ndarray
         Predicted target values for the test set.
 
-    inverse_scaler : callable, optional
+    inverse_transform : callable, optional
         Function to inverse-transform predicted and actual values (e.g., from a scaler).
         If None, no transformation is applied.
 
@@ -104,15 +102,19 @@ def plot_pred_real_timeseries_train_val_test(
     -------
     None
         Displays a matplotlib plot comparing actual vs predicted values over time.
+
+    Notes:
+        - Copy `time, time_train, time_val, time_test, y_train, y_val, y_test, y_pred_train, y_pred_val, y_pred_test` for your parameters
     """
 
-    if inverse_scaler != None:
-        y_train = inverse_scaler(y_train)
-        y_val = inverse_scaler(y_val)
-        y_test = inverse_scaler(y_test)
-        y_pred_train = inverse_scaler(y_pred_train)
-        y_pred_val = inverse_scaler(y_pred_val)
-        y_pred_test = inverse_scaler(y_pred_test)
+    if inverse_transform is not None:
+        # Since inverse_transform expects shape (n_samples, n_features), while current is (n_samples,)
+        y_train = inverse_transform(y_train.reshape(-1, 1)).flatten()
+        y_val = inverse_transform(y_val.reshape(-1, 1)).flatten()
+        y_test = inverse_transform(y_test.reshape(-1, 1)).flatten()
+        y_pred_train = inverse_transform(y_pred_train.reshape(-1, 1)).flatten()
+        y_pred_val = inverse_transform(y_pred_val.reshape(-1, 1)).flatten()
+        y_pred_test = inverse_transform(y_pred_test.reshape(-1, 1)).flatten()
 
     plt.figure(figsize=fig_size)
 
