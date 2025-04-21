@@ -5,7 +5,7 @@ import gc
 
 from src.data_extraction.api_client import APIClient
 from src.data_extraction.utils import remove_duplicates_and_sort_by_date
-from src.utils.json_io import write_json
+from src.utils.disk_io import write_json
 from src.config.settings import RAW_DIR
 
 api_client = APIClient()

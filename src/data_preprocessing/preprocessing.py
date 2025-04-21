@@ -2,7 +2,7 @@ import traceback
 import pandas as pd
 
 from src.config.settings import MACRO_DATA, PROCESSED_DIR, DATAFRAMES_DIR
-from src.utils.json_io import load_all_stocks
+from src.utils.disk_io import load_all_stocks
 
 
 def format_macro_data():
@@ -84,7 +84,7 @@ def json_dataframe_all(
 
         try:
             # Convert json to dataframe and save it to csv
-            df = json_to_dataframe(stock, macro_data)
+            df = json_to_dataframe(stock)
             path_output = output_directory / f"{stock["symbol"]}.csv"
             df.to_csv(path_output)
             print(f"Stock {stock['symbol']} , Index {i} saved")
@@ -147,7 +147,16 @@ def json_to_dataframe(stock):
 
     # Sort by index/date
     df_sorted = df_temp.sort_index(ascending=True)
-    df_sorted
+
+    static_metadata = {
+        "symbol": stock["symbol"],
+        "sicCode_2": stock["sicCode_2"],
+        "exchangeShortName": stock["exchangeShortName"],
+        "exchange": stock["exchange"],
+    }
+
+    for key, value in static_metadata.items():
+        df_sorted[key] = value
 
     return df_sorted
 

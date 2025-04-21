@@ -1,6 +1,6 @@
 from src.data_extraction.utils import get_stock_profiles
 from src.data_extraction.stock_info import get_all_stock_info
-from src.utils.json_io import read_json
+from src.utils.disk_io import read_json
 from src.config.settings import REFERENCE_DIR
 
 

@@ -1,5 +1,6 @@
 data/stocks/raw/*
 data/stocks/processed/*
+data/stocks/dataframes/*
 data/tests/*
 data/tests/processed/*
 .env

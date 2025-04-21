@@ -31,7 +31,11 @@ def calculate_retvol_std(daily_returns_monthly):
     """
     # Get standard deviation of the monthly daily returns, but if the month has no returns, None is assigned
     retvol = {
-        key_month: (np.std(daily_returns_monthly[key_month]))
+        key_month: (
+            np.std(daily_returns_monthly[key_month])
+            if len(daily_returns_monthly[key_month]) > 0
+            else None
+        )  # Can be that only 1 day in the month so an empty array is given
         for key_month in daily_returns_monthly
     }
 

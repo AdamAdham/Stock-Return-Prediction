@@ -209,10 +209,6 @@ class APIClient:
         - This function constructs the appropriate API extension and calls `get_api_call` to fetch the data.
         - If the API request fails, an error message is printed, and None is returned.
 
-        TODO
-        -------
-        - Check the bulk version for optimized data retrieval.
-
         Example
         -------
         >>> get_balance_sheet("AAPL", "yearly")

@@ -190,10 +190,14 @@ def calculate_dolvol(months_sorted, dollar_volume_monthly, current=False):
         # For each month return the log of the average
         # No need for None handling since dollar_volume_monthly[month] cannot be None due to implementation at src.feature_engineering.utils.get_weekly_monthly_summary
         return {
-            month: np.log(
-                dollar_volume_monthly[month]["sum"]
-                / dollar_volume_monthly[month]["count"]
-            )
+            month: (
+                np.log(
+                    dollar_volume_monthly[month]["sum"]
+                    / dollar_volume_monthly[month]["count"]
+                )
+                if dollar_volume_monthly[month]["sum"] != 0
+                else None
+            )  # Can be that the only volumes present are 0
             for month in months_sorted
         }
 
@@ -206,7 +210,9 @@ def calculate_dolvol(months_sorted, dollar_volume_monthly, current=False):
             dollar_volume_monthly[month_2]["sum"]
             / dollar_volume_monthly[month_2]["count"]
         )
-        dolvol_monthly[curr_month] = np.log(avg_dv)
+        dolvol_monthly[curr_month] = (
+            np.log(avg_dv) if avg_dv != 0 else None
+        )  # Can be that the only volumes present are 0
 
     # Make all months_sorted that cannot be calculated to None
     dolvol_monthly[months_sorted[-2]] = None

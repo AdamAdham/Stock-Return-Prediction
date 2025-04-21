@@ -19,12 +19,15 @@ def check_stock_validity(stock, invalid):
         "Quarterly balance sheet": stock["financials_quarterly"]["balance_sheet"],
     }
 
-    symbol = stock.get("symbol", "UNKNOWN")
+    symbol = stock["symbol"]
+
     for field_name, value in required_fields.items():
         if value is None or len(value) == 0:
             invalid[symbol] = f"{field_name} is missing"
             return False
 
+    # TODO
+    # Add the check for volume/price etc because to
     return True
 
 
@@ -159,9 +162,6 @@ def get_weekly_monthly_summary(prices_daily):
         - daily_returns_monthly : dict
             Mapping from each month "YYYY-MM" to a list of daily returns.
     """
-    if prices_daily is None or len(prices_daily) == 0:
-        return None
-
     months_sorted = []
     seen = set()
     prices_monthly = {}
@@ -193,7 +193,7 @@ def get_weekly_monthly_summary(prices_daily):
 
         price = entry["price"]
         volume = entry["volume"]
-        # TODO add if to price if not return None
+
         dollar_volume = price * volume  # Calculate dollar value
 
         # Monthly prices handling

@@ -18,7 +18,7 @@ def load_all_stocks(path):
 
     Parameters
     ----------
-    path : str, optional
+    path : str
         Path to the directory containing stock JSON files (default is 'stocks').
 
     Yields
@@ -29,6 +29,30 @@ def load_all_stocks(path):
     Notes
     -----
     - Each file in the directory is expected to be a valid JSON file.
+    - Files are read one at a time, making this function memory-efficient for large datasets.
+    """
+
+    for fname in os.listdir(path):
+        file_path = path / fname
+        yield read_json(file_path)
+
+
+def load_all_dfs(path):
+    """
+    Generator function to load all stock dataframes in a given directory.
+
+    Parameters
+    ----------
+    path : str
+        Path to the directory containing stock JSON files (default is 'stocks').
+
+    Yields
+    ------
+    dict
+        Dataframe for each csv file in the path.
+
+    Notes
+    -----
     - Files are read one at a time, making this function memory-efficient for large datasets.
     """
 

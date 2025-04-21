@@ -1,5 +1,5 @@
 from src.config.settings import PROCESSED_DIR, MACRO_DATA
-from src.utils.json_io import load_all_stocks
+from src.utils.disk_io import load_all_stocks
 import numpy as np
 import pandas as pd
 
@@ -99,6 +99,7 @@ def create_sequences(df, target_column, timesteps):
 def create_sequences_all(
     macro_df, target_column, timesteps, input_directory=PROCESSED_DIR
 ):
+    # TODO RESET this function
     """
     Generates sequences of features and corresponding target values for all stocks, including macroeconomic data.
 
@@ -150,7 +151,6 @@ def create_sequences_all(
     y_all = []
 
     for stock in stocks:
-        # TODO get feature ID, SIC_2 and any other important thing
 
         # Extract relevant features
         features = pd.DataFrame(stock["features"]["monthly"])

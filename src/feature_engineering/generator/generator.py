@@ -1,6 +1,6 @@
 import traceback
 
-from src.utils.json_io import load_all_stocks
+from src.utils.disk_io import load_all_stocks
 from src.utils.metrics import time_call
 from src.feature_engineering.calculations.momentum import (
     calculate_mom1m,
@@ -41,7 +41,7 @@ from src.feature_engineering.utils import (
     check_stock_validity,
 )
 
-from src.utils.json_io import write_json
+from src.utils.disk_io import write_json
 from src.utils.information import get_sic_industry_names
 
 from src.config.settings import RAW_DIR, PROCESSED_DIR

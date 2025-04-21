@@ -51,8 +51,8 @@ def plot_pred_real_timeseries_train_val_test(
     y_pred_train,
     y_pred_val,
     y_pred_test,
+    extra_plots=None,
     inverse_transform=None,
-    reshape_y=False,
     fig_size=(16, 8),
     x_ticks=20,
     style="ggplot",
@@ -151,6 +151,17 @@ def plot_pred_real_timeseries_train_val_test(
     plt.plot(
         time_test, y_pred_test, "--", label="Test (Predicted)", color="green", alpha=0.6
     )
+
+    # Extra plots to add eg: mean
+    if extra_plots is not None:
+        for name, plot_dict in extra_plots.items():
+            x = plot_dict["x"]
+            y = plot_dict["y"]
+            line_style = plot_dict["line_style"]
+            color = plot_dict["color"]
+            alpha = plot_dict["alpha"]
+
+            plt.plot(x, y, line_style, label=name, color=color, alpha=alpha)
 
     tick_positions = np.linspace(
         0, len(time) - 1, x_ticks, dtype=int
