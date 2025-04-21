@@ -5,8 +5,12 @@ import seaborn as sns
 
 import matplotlib.pyplot as plt
 
+#
 
-def plot_model_history(history, metrics=["loss", "mean_absolute_error"]):
+
+def plot_model_history(
+    history, metrics=["loss", "mean_absolute_error"], style="ggplot"
+):
     """
     Plots the training and validation metrics from the model's training history.
 
@@ -17,6 +21,8 @@ def plot_model_history(history, metrics=["loss", "mean_absolute_error"]):
     Displays:
         - A plot for each metric specified in the metrics list.
     """
+    plt.style.use(style)
+
     for metric in metrics:
         if metric in history.history:  # Check if the metric is available in history
             plt.figure(figsize=(8, 5))
@@ -49,6 +55,7 @@ def plot_pred_real_timeseries_train_val_test(
     reshape_y=False,
     fig_size=(16, 8),
     x_ticks=20,
+    style="ggplot",
 ):
     """
     Plots actual and predicted time series values for the training, validation, and test sets.
@@ -106,6 +113,7 @@ def plot_pred_real_timeseries_train_val_test(
     Notes:
         - Copy `time, time_train, time_val, time_test, y_train, y_val, y_test, y_pred_train, y_pred_val, y_pred_test` for your parameters
     """
+    plt.style.use(style)
 
     if inverse_transform is not None:
         # Since inverse_transform expects shape (n_samples, n_features), while current is (n_samples,)
@@ -154,13 +162,7 @@ def plot_pred_real_timeseries_train_val_test(
     plt.show()
 
 
-def plot_pred_real_timeseries(
-    time,
-    y,
-    y_pred,
-    color,
-    color_pred,
-):
+def plot_pred_real_timeseries(time, y, y_pred, color, color_pred, style="ggplot"):
     """
     Plots the actual vs. predicted time series values.
 
@@ -174,6 +176,7 @@ def plot_pred_real_timeseries(
     Displays:
         - A time series plot comparing actual vs. predicted values.
     """
+    plt.style.use(style)
 
     # Plot actual values
     plt.plot(time, y, label="Train (Actual)", color=color)
@@ -199,7 +202,12 @@ def plot_pred_real_timeseries(
 
 
 def basic_eda(
-    df, categorical_features=[], hist_bins=30, correlation=True, distribution=True
+    df,
+    categorical_features=[],
+    hist_bins=30,
+    correlation=True,
+    distribution=True,
+    style="ggplot",
 ):
     """
     Perform basic exploratory data analysis (EDA) on a given DataFrame.
@@ -208,6 +216,8 @@ def basic_eda(
     df (pd.DataFrame): The dataset to analyze.
     categorical_features (array[string]): names of the categorical features in the dataframe
     """
+    plt.style.use(style)
+
     print("\n--- Dataset Overview ---")
 
     print(f"Shape: {df.shape}")

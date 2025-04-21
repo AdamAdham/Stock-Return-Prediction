@@ -38,6 +38,7 @@ from src.feature_engineering.utils import (
     get_weekly_monthly_summary,
     get_returns_weekly,
     get_shares_monthly,
+    check_stock_validity,
 )
 
 from src.utils.json_io import write_json
@@ -315,6 +316,8 @@ def enrich_stocks_with_features(
     market_return_details = {}
     success = []
     failed = []
+    invalid = {}
+
     for i, stock in enumerate(stocks):
         # Check if within the limits
         if i < start_index:
@@ -324,6 +327,14 @@ def enrich_stocks_with_features(
 
         try:
             print(f"Stock {stock['symbol']} , Index {i} started")
+
+            # Check validity of stock according to a criteria
+            valid = check_stock_validity(stock, invalid)
+            if not valid:
+                print(f"Skipped stock {stock['symbol']} because was invalid")
+                continue
+
+            # Calculate features for the stock
             enriched_stock = get_features(stock)
 
             # Update indmom and market returns sum and count to be averaged once done
@@ -371,6 +382,7 @@ def enrich_stocks_with_features(
     return {"indmom": indmom, "market_returns_weekly": market_returns_weekly}, {
         "success": success,
         "failed": failed,
+        "invalid": invalid,
     }
 
 

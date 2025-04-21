@@ -51,7 +51,8 @@ def calculate_momentum(months_sorted, prices_monthly, offset_start, offset_end):
 
     # Fill in None for remaining months_sorted
     for i in range(len(months_sorted) - offset_end, len(months_sorted)):
-        mom[months_sorted[i]] = None
+        if len(months_sorted) - offset_end >= 0:
+            mom[months_sorted[i]] = None
 
     return mom
 
