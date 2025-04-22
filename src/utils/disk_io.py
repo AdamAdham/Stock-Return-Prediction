@@ -1,5 +1,6 @@
 import json
 import os
+import pandas as pd
 
 
 def read_json(path):
@@ -58,4 +59,4 @@ def load_all_dfs(path):
 
     for fname in os.listdir(path):
         file_path = path / fname
-        yield read_json(file_path)
+        yield pd.read_csv(file_path, index_col=0)

@@ -2,6 +2,7 @@ from src.config.settings import PROCESSED_DIR, MACRO_DATA
 from src.utils.disk_io import load_all_stocks
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 
 def format_macro():
@@ -253,4 +254,97 @@ def split_sequences(time, x, y, train_size=0.7, val_size=0.15):
         y_train,
         y_val,
         y_test,
+    )
+
+
+def scale_sequences(
+    x_train, x_val, x_test, y_train, y_val, y_test, scaler_class=StandardScaler
+):
+    """
+    Scales input (X) and output (Y) sequences for training, validation, and test sets using the specified scaler.
+    Fitting the scaler only on the training split to prevent data leakage.
+
+    This function reshapes the input sequences to apply scaling across all timesteps and features,
+    then reshapes them back to their original form. It also scales the output targets separately.
+
+    Parameters
+    ----------
+    x_train : array-like of shape (n_samples, n_timesteps, n_features)
+        Training input sequences.
+    x_val : array-like of shape (n_samples, n_timesteps, n_features)
+        Validation input sequences.
+    x_test : array-like of shape (n_samples, n_timesteps, n_features)
+        Test input sequences.
+    y_train : array-like of shape (n_samples, 1) or (n_samples,)
+        Training target values.
+    y_val : array-like of shape (n_samples, 1) or (n_samples,)
+        Validation target values.
+    y_test : array-like of shape (n_samples, 1) or (n_samples,)
+        Test target values.
+    scaler_class : class, optional
+        A scikit-learn scaler class (e.g., StandardScaler or MinMaxScaler). Default is StandardScaler.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+            - x_train_scaled, x_val_scaled, x_test_scaled : np.ndarray
+                Scaled input sequences.
+            - y_train_scaled, y_val_scaled, y_test_scaled : np.ndarray
+                Scaled target values.
+            - x_scaler : sklearn Scaler instance
+                Fitted scaler used for the input sequences.
+            - y_scaler : sklearn Scaler instance
+                Fitted scaler used for the output targets.
+
+    Notes
+    ------
+        - Copy the parameters `x_train, x_val, x_test, y_train, y_val, y_test`
+        - Copy the returns `x_train_scaled, x_val_scaled, x_test_scaled, y_train_scaled, y_val_scaled, y_test_scaled, x_scaler, y_scaler`
+    """
+
+    x_train = np.array(x_train)
+    x_val = np.array(x_val)
+    x_test = np.array(x_test)
+    y_train = np.array(y_train)
+    y_val = np.array(y_val)
+    y_test = np.array(y_test)
+
+    # Flatten X to fit scaler on (samples * timesteps, features)
+    x_scaler = scaler_class()
+    x_train_reshaped = x_train.reshape(
+        -1, x_train.shape[-1]
+    )  # By having no limit on 1 dimension and number of features as 2nd dimension
+    x_scaler.fit(x_train_reshaped)
+
+    # Transform the reshaped x data and then revert to initial shape
+    x_train_scaled = x_scaler.transform(x_train_reshaped).reshape(x_train.shape)
+    x_val_scaled = x_scaler.transform(x_val.reshape(-1, x_val.shape[-1])).reshape(
+        x_val.shape
+    )
+    x_test_scaled = x_scaler.transform(x_test.reshape(-1, x_test.shape[-1])).reshape(
+        x_test.shape
+    )
+
+    # Reshaped y data to ensure it is only 1 output
+    y_scaler = scaler_class()
+    y_train = y_train.reshape(-1, 1)
+    y_val = y_val.reshape(-1, 1)
+    y_test = y_test.reshape(-1, 1)
+
+    # Transform y data
+    y_scaler.fit(y_train)
+    y_train_scaled = y_scaler.transform(y_train)
+    y_val_scaled = y_scaler.transform(y_val)
+    y_test_scaled = y_scaler.transform(y_test)
+
+    return (
+        x_train_scaled,
+        x_val_scaled,
+        x_test_scaled,
+        y_train_scaled,
+        y_val_scaled,
+        y_test_scaled,
+        x_scaler,
+        y_scaler,
     )

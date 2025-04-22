@@ -140,12 +140,12 @@ def calculate_beta_betasq(
     month_latest_week,
     weekly_returns,
     market_weekly_returns,
-    interval=156,
+    interval=52,
     increment=4,
     current=False,
 ):
     """
-    Calculate rolling market beta for each month using weekly returns over the past 3 years.
+    Calculate rolling market beta for each month using weekly returns over the past year.
 
     Beta is defined as the covariance of stock and market returns divided by the variance of the market returns.
     It measures the sensitivity of the stock's return to market movements.
@@ -168,7 +168,7 @@ def calculate_beta_betasq(
         Mapping of (year, week) tuples to the market's weekly returns (float).
 
     interval : int
-        The number of weeks in the rolling window (default is 156 weeks, approximately 3 years).
+        The number of weeks in the rolling window (default is 52 weeks, approximately 1 year).
 
     increment : int
         The step size in weeks to move the rolling window forward (default is 4 weeks).
@@ -232,7 +232,7 @@ def calculate_beta_betasq(
                 beta = cov / var if var != 0 else None
 
                 beta_by_month[months_sorted[current_index]] = beta
-                betasq_by_month[months_sorted[current_index]] = beta
+                betasq_by_month[months_sorted[current_index]] = np.square(beta)
             else:
                 beta_by_month[months_sorted[current_index]] = None
                 betasq_by_month[months_sorted[current_index]] = None
