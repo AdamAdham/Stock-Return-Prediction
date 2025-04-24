@@ -38,8 +38,9 @@ from src.feature_engineering.utils import (
     get_weekly_monthly_summary,
     get_returns_weekly,
     get_shares_monthly,
-    check_stock_validity,
 )
+
+from src.feature_engineering.filtering import check_stock_validity, filter_stock
 
 from src.utils.disk_io import write_json
 from src.utils.information import get_sic_industry_names
@@ -317,6 +318,7 @@ def enrich_stocks_with_features(
     success = []
     failed = []
     invalid = {}
+    filtered = {}
 
     for i, stock in enumerate(stocks):
         # Check if within the limits
@@ -332,6 +334,11 @@ def enrich_stocks_with_features(
             valid = check_stock_validity(stock, invalid)
             if not valid:
                 print(f"Skipped stock {stock['symbol']} because was invalid")
+                continue
+
+            criteria_passed = filter_stock(stock, filtered)
+            if not criteria_passed:
+                print(f"Skipped stock {stock['symbol']} because was filtered")
                 continue
 
             # Calculate features for the stock
@@ -383,6 +390,7 @@ def enrich_stocks_with_features(
         "success": success,
         "failed": failed,
         "invalid": invalid,
+        "filtered": filtered,
     }
 
 

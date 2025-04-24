@@ -3,34 +3,6 @@ from src.config.settings import RETURN_ROUND_TO
 from collections import defaultdict
 
 
-def check_stock_validity(stock, invalid):
-    """
-    Validates the presence of essential financial data for a given stock.
-
-    Returns:
-        bool: True if all required fields are present and not None, False otherwise.
-    """
-    required_fields = {
-        "EOD data": stock["eod"],
-        "Market cap": stock["market_cap"],
-        "Annual income statement": stock["financials_annual"]["income_statement"],
-        "Quarterly income statement": stock["financials_quarterly"]["income_statement"],
-        "Annual balance sheet": stock["financials_annual"]["balance_sheet"],
-        "Quarterly balance sheet": stock["financials_quarterly"]["balance_sheet"],
-    }
-
-    symbol = stock["symbol"]
-
-    for field_name, value in required_fields.items():
-        if value is None or len(value) == 0:
-            invalid[symbol] = f"{field_name} is missing"
-            return False
-
-    # TODO
-    # Add the check for volume/price etc because to
-    return True
-
-
 def calculate_return(price_later, price_earlier, round_to=None):
     """
     Computes the percentage return between two price points.

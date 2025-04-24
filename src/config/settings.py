@@ -18,7 +18,7 @@ TEST_DIR = DATA_DIR / "tests"
 AGGREGATE_DIR_TEST = TEST_DIR / "aggregate"
 RAW_DIR_TEST = TEST_DIR / "raw"
 PROCESSED_DIR_TEST = TEST_DIR / "processed"
-DATAFRAME_DIR_TEST = TEST_DIR / "dataframes"
+DATAFRAMES_DIR_TEST = TEST_DIR / "dataframes"
 REFERENCE_DIR = DATA_DIR / "reference"
 
 # Metadata

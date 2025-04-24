@@ -5,7 +5,7 @@ import gc
 
 from src.data_extraction.api_client import APIClient
 from src.data_extraction.utils import remove_duplicates_and_sort_by_date
-from src.utils.disk_io import write_json
+from src.utils.disk_io import write_json, load_all_stocks
 from src.config.settings import RAW_DIR
 
 api_client = APIClient()
@@ -226,3 +226,100 @@ def get_all_stock_info(
             continue
 
     return {"success": success, "failed": failed}
+
+
+def add_info(
+    path,
+    api_req_func,
+    info_name,
+    stock_params,
+    const_params=None,
+    sort_key=None,
+    reverse=True,
+    start_index=0,
+    end_index=None,
+):
+    """
+    Enriches stock data JSON files with information retrieved from a specified API function.
+
+    This function loads all stock JSON files from a directory, applies an API request function
+    to each stock using both dynamic (stock-specific) and optional constant parameters, and stores
+    the API response under a specified key in each stock's data. The result can optionally be
+    sorted before saving. The updated stock data is saved back to the file.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        Path to the directory containing individual stock JSON files.
+    api_req_func : callable
+        Function to call the API. It should accept keyword arguments based on the keys in `stock_params` and `const_params`.
+    info_name : str
+        The key under which the API response will be stored in each stock's dictionary.
+    stock_params : dict
+        Dictionary mapping argument names (for the API function) to keys in each stock's dictionary.
+    const_params : dict, optional
+        Dictionary of constant parameters to pass to the API function (default is None).
+    sort_key : str, optional
+        If provided, the API response (assumed to be a list of dicts) is sorted by this key (default is None).
+    reverse : bool, optional
+        Whether to reverse the sort order (default is True).
+    start_index : int, optional
+        Index of the first stock to process (default is 0).
+    end_index : int, optional
+        Index at which to stop processing stocks (exclusive). If None, processes all stocks to the end (default is None).
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - Each stock's updated data is saved back to its corresponding JSON file.
+    - Stocks that encounter exceptions during processing are skipped and logged to the console.
+    """
+
+    stocks = load_all_stocks(path)
+
+    success = []
+    failed = []
+    for i, stock in enumerate(stocks):
+        # Check if within the limits
+        if i < start_index:
+            continue
+        if end_index is not None and i >= end_index:
+            break
+
+        try:
+            print(f"Stock {stock['symbol']} , Index {i} started")
+
+            # Dynamically build the dictionary of arguments to pass
+            call_params = {}
+
+            # Extract stock-specific parameters
+            for key, stock_key in stock_params.items():
+                call_params[key] = stock[stock_key]
+
+            # Add constant parameters if any
+            if const_params:
+                call_params.update(const_params)
+
+            # Call the API function with all params as kwargs
+            response = api_req_func(**call_params)
+
+            if sort_key is not None:
+                stock[info_name] = sorted(
+                    response, key=lambda split: split[sort_key], reverse=reverse
+                )
+            else:
+                stock[info_name] = response
+
+            path_stock = path / f"{stock["symbol"]}.json"
+            write_json(path_stock, stock)
+
+            print(f"Stock {stock["symbol"]} , Index {i} saved")
+            success.append(stock["symbol"])
+
+        except Exception as e:
+            print(f"Error fetching data for {stock['symbol']}: {e}")
+            failed.append(stock["symbol"])
+            continue

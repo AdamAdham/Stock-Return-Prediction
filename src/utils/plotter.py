@@ -246,10 +246,30 @@ def basic_eda(
     print(df.duplicated().sum())
 
     if correlation:
+        corr_matrix = df.corr(numeric_only=True)
+
+        # Adjust figure size based on number of columns
+        num_cols = len(corr_matrix.columns)
+        fig_size = max(10, num_cols * 0.6)  # Auto scale width
+
         print("\n--- Correlation Matrix ---")
-        plt.figure(figsize=(10, 6))
-        sns.heatmap(df.corr(numeric_only=True), annot=True, cmap="coolwarm", fmt=".2f")
-        plt.title("Feature Correlation Matrix")
+        plt.figure(figsize=(fig_size, fig_size * 0.75))  # Wider for more columns
+        heatmap = sns.heatmap(
+            corr_matrix,
+            annot=True,
+            cmap="coolwarm",
+            fmt=".2f",
+            square=True,
+            cbar_kws={"shrink": 0.5},
+            linewidths=0.5,
+            linecolor="gray",
+        )
+        plt.title("Feature Correlation Matrix", fontsize=14)
+        heatmap.set_xticklabels(
+            heatmap.get_xticklabels(), rotation=45, ha="right", fontsize=9
+        )
+        heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0, fontsize=9)
+        plt.tight_layout()
         plt.show()
 
     if distribution:
@@ -283,3 +303,17 @@ def basic_eda(
             sns.countplot(y=df[col], order=df[col].value_counts().index)
             plt.title(f"Distribution of {col}")
             plt.show()
+
+
+def plot_real_pred(y, y_pred, graph_title="Actual vs Predicted"):
+    # Plot actual vs. predicted values
+    plt.figure(figsize=(8, 5))
+    plt.scatter(y, y_pred, alpha=0.5, label="Predictions")
+    plt.plot(
+        [y.min(), y.max()], [y.min(), y.max()], "r", linestyle="--", label="Perfect Fit"
+    )  # 45-degree line
+    plt.xlabel("Actual Values")
+    plt.ylabel("Predicted Values")
+    plt.title(graph_title)
+    plt.legend()
+    plt.show()

@@ -440,6 +440,41 @@ class APIClient:
 
         return self.get_api_call(extension, legacy=False)
 
+    def get_unadjusted_eod(self, symbol, start_date=None, end_date=None):
+        """
+        Retrieves unadjusted end-of-day (EOD) historical price data for a given stock symbol.
+
+        Unlike adjusted EOD data, this data does not account for stock splits.
+
+        Parameters
+        ----------
+        symbol : str
+            The stock ticker symbol (e.g., "AAPL" for Apple Inc.).
+
+        start_date : str, optional
+            Start date in 'YYYY-MM-DD' format. If None, retrieves from the earliest available date.
+
+        end_date : str, optional
+            End date in 'YYYY-MM-DD' format. If None, retrieves up to the most recent available date.
+
+        Returns
+        -------
+        list
+            JSON response from the API containing unadjusted historical EOD price data.
+        """
+        params = {
+            "symbol": symbol,
+            "from": start_date,
+            "to": end_date,
+        }
+
+        # Remove keys with None values to avoid sending "None" in the query string
+        params = {key: value for key, value in params.items() if value is not None}
+
+        extension = f"historical-price-eod/non-split-adjusted?" + urlencode(params)
+
+        return self.get_api_call(extension, legacy=False)
+
     def get_shares(self, symbol):
         """
         Retrieves historical float shares data for a given stock symbol.
@@ -490,3 +525,37 @@ class APIClient:
         extension = f"historical/shares_float?" + urlencode(params)
 
         return self.get_api_call(extension, v4=True)
+
+    def get_stock_splits(self, symbol, start_date=None, end_date=None):
+        """
+        Retrieves stock split data for a given symbol within an optional date range.
+
+        Parameters
+        ----------
+        symbol : str
+            The stock ticker symbol (e.g., "AAPL" for Apple Inc.).
+
+        start_date : str, optional
+            The start date in 'YYYY-MM-DD' format. If None, retrieves from earliest available data.
+
+        end_date : str, optional
+            The end date in 'YYYY-MM-DD' format. If None, retrieves up to the latest available data.
+
+        Returns
+        -------
+        list
+            Parsed JSON response from the API containing stock split information.
+        """
+        params = {
+            "symbol": symbol,
+            "from": start_date,
+            "to": end_date,
+            "limit": 1000,  # Maximum by FMP
+        }
+
+        # Remove keys with None values to avoid sending "None" in the query string
+        params = {key: value for key, value in params.items() if value is not None}
+
+        extension = f"splits?" + urlencode(params)
+
+        return self.get_api_call(extension, legacy=False)
