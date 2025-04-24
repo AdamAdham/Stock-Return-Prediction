@@ -5,7 +5,9 @@ from src.feature_engineering.utils import calculate_return
 from src.config.settings import RETURN_ROUND_TO
 
 
-def calculate_ep_sp(income_statements, market_caps):
+def calculate_ep_sp(
+    income_statements: list[dict], market_caps: list[dict]
+) -> tuple[dict[str, float | None], dict[str, float | None]]:
     """
     Calculate the Earnings to Market Capitalization (EP) and Sales to Market Capitalization (SP) ratios for each fiscal period.
 
@@ -111,7 +113,7 @@ def calculate_ep_sp(income_statements, market_caps):
     return ep, sp
 
 
-def calculate_agr(balance_sheet):
+def calculate_agr(balance_sheet: list[dict]) -> dict[str, float | None]:
     """
     Calculate the annual/quarterly percent change in total assets.
 

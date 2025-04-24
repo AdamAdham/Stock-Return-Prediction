@@ -1,8 +1,9 @@
 from datetime import datetime
 from src.utils.information import get_sic_industry_names
+from typing import Tuple
 
 
-def remove_duplicates_and_sort_by_date(market_cap_data):
+def remove_duplicates_and_sort_by_date(market_cap_data: list) -> list:
     """
     Removes duplicate dates from a list of market cap dictionaries and sorts them by date.
 
@@ -41,7 +42,7 @@ def remove_duplicates_and_sort_by_date(market_cap_data):
     return unique_market_cap_data
 
 
-def get_stock_profiles(stocks_sic_codes, stock_list):
+def get_stock_profiles(stocks_sic_codes: list, stock_list: list) -> Tuple[list, list]:
     """
     Matches stocks in sic_codes with additional details from stock_list using the symbol.
 
@@ -132,7 +133,7 @@ def get_stock_profiles(stocks_sic_codes, stock_list):
     return updated_stocks_sic_codes, not_in_stock_symbols
 
 
-def get_sic_division(sic_2):
+def get_sic_division(sic_2: str) -> str:
     """
     Maps a 2-digit Standard Industry Classification (SIC) code to its corresponding industry division.
 

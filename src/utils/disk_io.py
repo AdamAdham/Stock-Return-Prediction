@@ -2,18 +2,20 @@ import json
 import os
 import pandas as pd
 
+from typing import Iterator
 
-def read_json(path):
+
+def read_json(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as file:
         return json.load(file)
 
 
-def write_json(path, data):
+def write_json(path, data) -> None:
     with open(path, "w") as json_file:
         json.dump(data, json_file, indent=4)
 
 
-def load_all_stocks(path):
+def load_all_stocks(path: str) -> Iterator[dict]:
     """
     Generator function to load all stock data from JSON files in a given directory.
 
@@ -38,7 +40,7 @@ def load_all_stocks(path):
         yield read_json(file_path)
 
 
-def load_all_dfs(path):
+def load_all_dfs(path: str) -> Iterator[pd.DataFrame]:
     """
     Generator function to load all stock dataframes in a given directory.
 

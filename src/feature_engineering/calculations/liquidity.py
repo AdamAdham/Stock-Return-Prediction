@@ -7,7 +7,11 @@ from src.feature_engineering.utils import calculate_return
 from src.config.settings import RETURN_ROUND_TO
 
 
-def calculate_turn(months_sorted, vol_monthly, shares_monthly):
+def calculate_turn(
+    months_sorted: list[str],
+    vol_monthly: dict[str, float],
+    shares_monthly: dict[str, float],
+) -> dict[str, float | None]:
     """
     Calculate the 3-month rolling share turnover ratio for each month.
 
@@ -55,7 +59,10 @@ def calculate_turn(months_sorted, vol_monthly, shares_monthly):
     return result
 
 
-def calculate_std_turn(prices_daily, shares):
+def calculate_std_turn(
+    prices_daily: list[dict],
+    shares: dict[str, float],
+) -> dict[str, float | None]:
     """
     Calculate the monthly standard deviation of daily share turnover (turnover volatility).
 
@@ -106,7 +113,11 @@ def calculate_std_turn(prices_daily, shares):
     return std_turn_per_month
 
 
-def calculate_mve(months_sorted, market_caps_monthly, current=False):
+def calculate_mve(
+    months_sorted: list[str],
+    market_caps_monthly: dict[str, float | int],
+    current: bool = False,
+) -> dict[str, float | None]:
     """
     Calculate the monthly Market Value of Equity (mve) using the natural logarithm
     of the market capitalization from the previous month.
@@ -155,7 +166,11 @@ def calculate_mve(months_sorted, market_caps_monthly, current=False):
     return mve_per_month
 
 
-def calculate_dolvol(months_sorted, dollar_volume_monthly, current=False):
+def calculate_dolvol(
+    months_sorted: list[str],
+    dollar_volume_monthly: dict[str, dict[str, float | int]],
+    current: bool = False,
+) -> dict[str, float | None]:
     """
     Calculates the Dollar Volume (dolvol) factor for each month using pre-aggregated monthly dollar volume data.
 
@@ -221,7 +236,7 @@ def calculate_dolvol(months_sorted, dollar_volume_monthly, current=False):
     return dolvol_monthly
 
 
-def calculate_ill(prices_daily):
+def calculate_ill(prices_daily: list[dict]) -> dict[str, float | None]:
     """
     Calculates the Amihud illiquidity measure for each month based on daily price and volume data.
 
@@ -308,12 +323,12 @@ def calculate_ill(prices_daily):
 
 
 def calculate_zerotrade(
-    months_sorted,
-    vol_sum_monthly,
-    shares_monthly,
-    zero_trading_days,
-    trading_days_count,
-):
+    months_sorted: list[str],
+    vol_sum_monthly: dict[str, float],
+    shares_monthly: dict[str, float],
+    zero_trading_days: dict[str, int],
+    trading_days_count: dict[str, int],
+) -> dict[str, float | None]:
     """
     Calculate the turnover-adjusted number of zero trading days for each month.
 

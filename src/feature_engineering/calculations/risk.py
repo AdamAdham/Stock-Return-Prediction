@@ -1,7 +1,9 @@
 import numpy as np
 
 
-def calculate_retvol_std(daily_returns_monthly):
+def calculate_retvol_std(
+    daily_returns_monthly: dict[str, list[float] | None],
+) -> dict[str, float | None]:
     """
     Computes the monthly return volatility (retvol) as the standard deviation of daily returns.
 
@@ -43,15 +45,15 @@ def calculate_retvol_std(daily_returns_monthly):
 
 
 def calculate_idiovol(
-    weeks_sorted,
-    months_sorted,
-    month_latest_week,
-    weekly_returns,
-    market_weekly_returns,
-    interval=156,
-    increment=4,
-    current=False,
-):
+    weeks_sorted: list[str],
+    months_sorted: list[str],
+    month_latest_week: dict[str, str],
+    weekly_returns: dict[str, float],
+    market_weekly_returns: dict[str, float],
+    interval: int = 156,
+    increment: int = 4,
+    current: bool = False,
+) -> dict[str, float | None]:
     """
     Calculate idiosyncratic volatility (idiovol) for each month using a 3-year rolling window
     of weekly returns, measured as the standard deviation of the difference between a stock's
@@ -135,15 +137,15 @@ def calculate_idiovol(
 
 
 def calculate_beta_betasq(
-    weeks_sorted,
-    months_sorted,
-    month_latest_week,
-    weekly_returns,
-    market_weekly_returns,
-    interval=52,
-    increment=4,
-    current=False,
-):
+    weeks_sorted: list[str],
+    months_sorted: list[str],
+    month_latest_week: dict[str, str],
+    weekly_returns: dict[str, float],
+    market_weekly_returns: dict[str, float],
+    interval: int = 52,
+    increment: int = 4,
+    current: bool = False,
+) -> tuple[dict[str, float], dict[str, float]]:
     """
     Calculate rolling market beta for each month using weekly returns over the past year.
 

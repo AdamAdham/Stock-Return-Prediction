@@ -13,7 +13,13 @@ class APIClient:
     def __init__(self, session=None):
         self.session = session or requests.Session()
 
-    def get_api_call(self, extension, legacy=True, v4=False, separator=True):
+    def get_api_call(
+        self,
+        extension: str,
+        legacy: bool = True,
+        v4: bool = False,
+        separator: bool = True,
+    ) -> list | dict | None:
         """
         Creates a GET API call to the base URL with the given extension, handling errors appropriately.
 
@@ -67,7 +73,7 @@ class APIClient:
             print("Error:", e)
             return None
 
-    def get_income_statement(self, symbol, interval="annual"):
+    def get_income_statement(self, symbol: str, interval: str = "annual") -> list:
         """
         Fetches the income statement for a given stock symbol and time interval.
 
@@ -186,7 +192,7 @@ class APIClient:
 
         return self.get_api_call(extension)
 
-    def get_balance_sheet(self, symbol, interval="annual"):
+    def get_balance_sheet(self, symbol: str, interval: str = "annual") -> list:
         """
         Fetches the balance sheet for a given stock symbol and time interval.
 
@@ -281,7 +287,13 @@ class APIClient:
 
         return self.get_api_call(extension)
 
-    def get_market_cap(self, symbol, start_date=None, end_date=None, limit=None):
+    def get_market_cap(
+        self,
+        symbol: str,
+        start_date: str = None,
+        end_date: str = None,
+        limit: int = None,
+    ) -> list:
         """
         Fetches the historical market capitalization for a given stock symbol within a specified date range.
 
@@ -338,7 +350,7 @@ class APIClient:
 
         return self.get_api_call(extension, legacy=False)
 
-    def get_earnings(self, symbol):
+    def get_earnings(self, symbol: str) -> list:
         """
         Fetches the earnings data for a given stock symbol.
 
@@ -389,7 +401,9 @@ class APIClient:
 
         return self.get_api_call(extension, legacy=True, separator=False)
 
-    def get_eod(self, symbol, start_date=None, end_date=None):
+    def get_eod(
+        self, symbol: str, start_date: str = None, end_date: str = None
+    ) -> list:
         """
         Fetches the end-of-day (EOD) stock price data for a given stock symbol within a specified date range.
 
@@ -440,7 +454,9 @@ class APIClient:
 
         return self.get_api_call(extension, legacy=False)
 
-    def get_unadjusted_eod(self, symbol, start_date=None, end_date=None):
+    def get_unadjusted_eod(
+        self, symbol: str, start_date: str = None, end_date: str = None
+    ) -> list:
         """
         Retrieves unadjusted end-of-day (EOD) historical price data for a given stock symbol.
 
@@ -475,7 +491,7 @@ class APIClient:
 
         return self.get_api_call(extension, legacy=False)
 
-    def get_shares(self, symbol):
+    def get_shares(self, symbol: str) -> list:
         """
         Retrieves historical float shares data for a given stock symbol.
 
@@ -526,7 +542,9 @@ class APIClient:
 
         return self.get_api_call(extension, v4=True)
 
-    def get_stock_splits(self, symbol, start_date=None, end_date=None):
+    def get_stock_splits(
+        self, symbol: str, start_date: str = None, end_date: str = None
+    ) -> list:
         """
         Retrieves stock split data for a given symbol within an optional date range.
 

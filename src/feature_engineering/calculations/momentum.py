@@ -3,7 +3,12 @@ from src.feature_engineering.utils import calculate_return
 from src.config.settings import RETURN_ROUND_TO
 
 
-def calculate_momentum(months_sorted, prices_monthly, offset_start, offset_end):
+def calculate_momentum(
+    months_sorted: list[str],
+    prices_monthly: dict[str, float],
+    offset_start: int,
+    offset_end: int,
+) -> dict[str, float | None]:
     """
     Calculates the momentum (rate of return) for each month over a custom time window.
 
@@ -57,12 +62,56 @@ def calculate_momentum(months_sorted, prices_monthly, offset_start, offset_end):
     return mom
 
 
-def calculate_mom1m(months_sorted, prices_monthly):
-    # Same as returns_monthly
+def calculate_mom1m(
+    months_sorted: list[str], prices_monthly: dict[str, float]
+) -> dict[str, float | None]:
+    """
+    Calculates the 1-month momentum (rate of return) for each month.
+    This is equivalent to calling calculate_momentum with offset_start=0 and offset_end=1.
+
+    Parameters
+    ----------
+    months_sorted : list of str
+        A sorted list of months_sorted in "YYYY-MM" format, from latest to oldest.
+    prices_monthly : dict
+        A dictionary where keys are month identifiers (in "YYYY-MM" format) and values
+        are the closing prices for those months_sorted.
+
+    Returns
+    -------
+    dict
+        A dictionary where the keys are month identifiers (in "YYYY-MM" format), and the values
+        are the calculated momentum values (rate of return) for each month. If there is insufficient
+        data to calculate the momentum for a particular month, the value will be `None`.
+    """
     return calculate_momentum(months_sorted, prices_monthly, 0, 1)
 
 
-def calculate_mom12m(months_sorted, prices_monthly, current=False):
+def calculate_mom12m(
+    months_sorted: list[str], prices_monthly: dict[str, float], current: bool = False
+) -> dict[str, float | None]:
+    """
+    Calculates the 12-month momentum (rate of return) for each month.
+    The window used for calculation if current month is '2023-09' is either from `2023-09` to `2022-10` (inclusive) if current=True,
+    or from the previous month '2023-08' to '2023-09' otherwise.
+
+    Parameters
+    ----------
+    months_sorted : list of str
+        A sorted list of months_sorted in "YYYY-MM" format, from latest to oldest.
+    prices_monthly : dict
+        A dictionary where keys are month identifiers (in "YYYY-MM" format) and values
+        are the closing prices for those months_sorted.
+    current : bool, optional
+        Whether to include the current month in the momentum calculation (default is False).
+
+    Returns
+    -------
+    dict
+        A dictionary where the keys are month identifiers (in "YYYY-MM" format), and the values
+        are the calculated momentum values (rate of return) for each month. If there is insufficient
+        data to calculate the momentum for a particular month, the value will be `None`.
+    """
     if current:
         # 11 not 12 such that returns are calculated from 2023-09 to 2022-10 (both inclusive) so it will be 12 months since current is included
         return calculate_momentum(months_sorted, prices_monthly, 0, 11)
@@ -70,11 +119,33 @@ def calculate_mom12m(months_sorted, prices_monthly, current=False):
         return calculate_momentum(months_sorted, prices_monthly, 1, 12)
 
 
-def calculate_mom36m(months_sorted, prices_monthly):
+def calculate_mom36m(
+    months_sorted: list[str], prices_monthly: dict[str, float]
+) -> dict[str, float | None]:
+    """
+    Calculates the 36-month momentum (rate of return) for each month.
+
+    Parameters
+    ----------
+    months_sorted : list of str
+        A sorted list of months_sorted in "YYYY-MM" format, from latest to oldest.
+    prices_monthly : dict
+        A dictionary where keys are month identifiers (in "YYYY-MM" format) and values
+        are the closing prices for those months_sorted.
+
+    Returns
+    -------
+    dict
+        A dictionary where the keys are month identifiers (in "YYYY-MM" format), and the values
+        are the calculated momentum values (rate of return) for each month. If there is insufficient
+        data to calculate the momentum for a particular month, the value will be `None`.
+    """
     return calculate_momentum(months_sorted, prices_monthly, 13, 36)
 
 
-def calculate_chmom(months_sorted, prices_monthly, current=False):
+def calculate_chmom(
+    months_sorted: list[str], prices_monthly: dict[str, float], current: bool = False
+) -> dict[str, float | None]:
     """
     Calculates the change in 6-month momentum (CHMOM) for each month.
 
@@ -145,7 +216,9 @@ def calculate_chmom(months_sorted, prices_monthly, current=False):
     return chmom_per_month
 
 
-def calculate_maxret(months_sorted, max_daily_returns_monthly):
+def calculate_maxret(
+    months_sorted: list[str], max_daily_returns_monthly: dict[str, float]
+) -> dict[str, float]:
     """
     Calculates the maximum daily return (maxret) for each month in the given list.
 
@@ -190,7 +263,9 @@ def calculate_maxret(months_sorted, max_daily_returns_monthly):
     return maxret_monthly
 
 
-def handle_indmom(stock, indmom):
+def handle_indmom(
+    stock: dict, indmom: dict[str, dict[str, dict[str, float]]]
+) -> dict[str, dict[str, dict[str, float]]]:
     """
     Updates the industry momentum (indmom) data for a given stock by accumulating
     (mom12m) values for each month within its industry group.

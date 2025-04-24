@@ -48,7 +48,7 @@ from src.utils.information import get_sic_industry_names
 from src.config.settings import RAW_DIR, PROCESSED_DIR
 
 
-def get_features(stock):
+def get_features(stock: dict) -> dict:
     """
     Computes and attaches a set of financial and market-related features for a given stock.
 
@@ -257,11 +257,11 @@ def get_features(stock):
 
 
 def enrich_stocks_with_features(
-    start_index=0,
-    end_index=None,
-    input_directory=RAW_DIR,
-    output_directory=PROCESSED_DIR,
-):
+    start_index: int = 0,
+    end_index: int | None = None,
+    input_directory: str = RAW_DIR,
+    output_directory: str = PROCESSED_DIR,
+) -> dict[str, dict]:
     """
     Enriches stock data with statistical features, industry momentum, and market returns.
 
@@ -395,13 +395,13 @@ def enrich_stocks_with_features(
 
 
 def enrich_stocks_with_aggregate_features(
-    indmom,
-    market_returns_weekly,
-    start_index=0,
-    end_index=None,
-    input_directory=PROCESSED_DIR,
-    output_directory=PROCESSED_DIR,
-):
+    indmom: dict[str, dict[str, float]],
+    market_returns_weekly: dict[str, float | None],
+    start_index: int = 0,
+    end_index: int | None = None,
+    input_directory: str = PROCESSED_DIR,
+    output_directory: str = PROCESSED_DIR,
+) -> dict[str, list[str]]:
     """
     Enhances stock data with aggregate statistical metrics using precomputed market and industry information.
 

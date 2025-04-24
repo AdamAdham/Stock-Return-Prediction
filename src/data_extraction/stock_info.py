@@ -11,7 +11,7 @@ from src.config.settings import RAW_DIR
 api_client = APIClient()
 
 
-def get_stock_info(stock):
+def get_stock_info(stock: dict) -> dict:
     """
     Retrieves and aggregates financial and market data for a given stock.
 
@@ -139,12 +139,14 @@ def get_stock_info(stock):
 
 
 def get_all_stock_info(
-    stock_profiles,
-    start_index=0,
-    calls_per_minute=750,
-    calls_per_stock=10,
-    sleep_buffer=5,
-):
+    stock_profiles: list,
+    output_directory: str = RAW_DIR,
+    start_index: int = 0,
+    end_index: int | None = None,
+    calls_per_minute: int = 750,
+    calls_per_stock: int = 10,
+    sleep_buffer: int = 5,
+) -> dict:
     """
     Retrieves extended stock information for a list of stocks while respecting API rate limits.
 
@@ -189,6 +191,8 @@ def get_all_stock_info(
     failed = []
 
     for i in range(start_index, len(stock_profiles)):
+        if end_index is not None and i >= end_index:
+            break
         stock = stock_profiles[i]
         # Track API usage — assuming 4 API calls per stock
         calls_used += calls_per_stock
@@ -210,7 +214,7 @@ def get_all_stock_info(
         try:
             stock_info = get_stock_info(stock)
 
-            path = RAW_DIR / f"{stock["symbol"]}.json"
+            path = output_directory / f"{stock["symbol"]}.json"
             write_json(path, stock_info)
 
             print(f"Stock {stock["symbol"]} , Index {i} saved")
@@ -238,7 +242,7 @@ def add_info(
     reverse=True,
     start_index=0,
     end_index=None,
-):
+) -> None:
     """
     Enriches stock data JSON files with information retrieved from a specified API function.
 

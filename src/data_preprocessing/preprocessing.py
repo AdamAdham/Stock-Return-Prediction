@@ -6,7 +6,7 @@ from src.utils.disk_io import load_all_stocks
 from sklearn.preprocessing import StandardScaler
 
 
-def format_macro_data():
+def format_macro_data() -> pd.DataFrame:
     # Read csv
     macro = pd.read_csv(MACRO_DATA)
 
@@ -27,7 +27,7 @@ def format_macro_data():
     return macro
 
 
-def add_macro_data(df, macro_data):
+def add_macro_data(df: pd.DataFrame, macro_data: pd.DataFrame) -> pd.DataFrame:
     """
     Appends macroeconomic data to a stock-specific DataFrame by aligning on the months "YYYY-MM" index.
 
@@ -66,13 +66,12 @@ def add_macro_data(df, macro_data):
 
 
 def json_dataframe_all(
-    start_index=0,
-    end_index=None,
-    input_directory=PROCESSED_DIR,
-    output_directory=DATAFRAMES_DIR,
-):
+    start_index: int = 0,
+    end_index: int = None,
+    input_directory: str = PROCESSED_DIR,
+    output_directory: str = DATAFRAMES_DIR,
+) -> dict:
     stocks = load_all_stocks(input_directory)
-    macro_data = format_macro_data()
     success = []
     failed = []
 

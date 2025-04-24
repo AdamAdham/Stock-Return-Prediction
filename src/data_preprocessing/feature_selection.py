@@ -1,9 +1,13 @@
 import numpy as np
+import pandas as pd
 
 
 def remove_highly_correlated_features(
-    df, threshold=0.9, method="pearson", inplace=False
-):
+    df: pd.DataFrame,
+    threshold: float = 0.9,
+    method: str = "pearson",
+    inplace: bool = False,
+) -> tuple[pd.DataFrame, list[str]]:
     """
     Identifies and removes columns with correlation above the given threshold.
 

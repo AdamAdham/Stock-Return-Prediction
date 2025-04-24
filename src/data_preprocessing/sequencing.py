@@ -2,30 +2,14 @@ from src.config.settings import PROCESSED_DIR, MACRO_DATA
 from src.utils.disk_io import load_all_stocks
 import numpy as np
 import pandas as pd
+
+from sklearn.base import TransformerMixin
 from sklearn.preprocessing import StandardScaler
 
 
-def format_macro():
-    # Read csv
-    macro = pd.read_csv(MACRO_DATA)
-
-    # Format df index to be YYYY-MM
-    macro["yyyymm"] = (
-        macro["yyyymm"].astype(str).str[:4] + "-" + macro["yyyymm"].astype(str).str[4:]
-    )
-    macro.set_index("yyyymm", inplace=True)
-    macro.index.name = None
-
-    # Remove commas from column Index
-    macro["Index"] = macro["Index"].str.replace(",", "")
-
-    # Remove all the data that will never be used since the earliest stock data point is on 1962-01-02
-    macro = macro[macro.index > "1961-12-31"]
-
-    return macro
-
-
-def create_sequences(df, target_column, timesteps):
+def create_sequences(
+    df: pd.DataFrame, target_column: str, timesteps: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Transforms a time-indexed DataFrame into sequences suitable for training sequence models (e.g., RNNs, LSTMs).
 
@@ -47,6 +31,9 @@ def create_sequences(df, target_column, timesteps):
     Returns
     -------
     tuple of np.ndarray
+        - time : ndarray of shape (num_samples,)
+                The time for each y sample.
+
         - x : ndarray of shape (num_samples, timesteps, num_features)
             The input sequences.
 
@@ -182,7 +169,23 @@ def create_sequences_all(
     return np.array(x_all), np.array(y_all)
 
 
-def split_sequences(time, x, y, train_size=0.7, val_size=0.15):
+def split_sequences(
+    time: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
+    train_size: float = 0.7,
+    val_size: float = 0.15,
+) -> tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
     """
     Splits time series data into training, validation, and test sets.
 
@@ -258,8 +261,23 @@ def split_sequences(time, x, y, train_size=0.7, val_size=0.15):
 
 
 def scale_sequences(
-    x_train, x_val, x_test, y_train, y_val, y_test, scaler_class=StandardScaler
-):
+    x_train: np.ndarray,
+    x_val: np.ndarray,
+    x_test: np.ndarray,
+    y_train: np.ndarray,
+    y_val: np.ndarray,
+    y_test: np.ndarray,
+    scaler_class: type[TransformerMixin] = StandardScaler,
+) -> tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    TransformerMixin,
+    TransformerMixin,
+]:
     """
     Scales input (X) and output (Y) sequences for training, validation, and test sets using the specified scaler.
     Fitting the scaler only on the training split to prevent data leakage.

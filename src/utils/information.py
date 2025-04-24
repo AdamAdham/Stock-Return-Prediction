@@ -1,7 +1,7 @@
 import re
 
 
-def get_sic_industry_names():
+def get_sic_industry_names() -> dict[str, str]:
     """
     Extracts and returns a dictionary mapping SIC (Standard Industrial Classification) major group codes
     to their corresponding industry names.
