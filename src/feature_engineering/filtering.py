@@ -23,6 +23,7 @@ def check_stock_validity(stock: dict, invalid: dict[str, str]) -> bool:
 
     required_fields = {
         "EOD data": stock["eod"],
+        "EOD unadjusted data": stock["eod_unadj"],
         "Market cap": stock["market_cap"],
         "Annual income statement": stock["financials_annual"]["income_statement"],
         "Quarterly income statement": stock["financials_quarterly"]["income_statement"],
@@ -41,13 +42,16 @@ def check_stock_validity(stock: dict, invalid: dict[str, str]) -> bool:
 
 
 def filter_stock(stock: dict, filtered: dict[str, str]):
-    # TODO use splits to actually see if the price is low or high and remove penny stocks and see
-    # Add other filters here
-    price_lower = 0.01
-    for eod in stock["eod"]:
-        if eod["price"] < price_lower:
-            print(f"{stock['symbol']} had a daily price less that {price_lower}")
-            filtered[stock["symbol"]] = f"daily price less that {price_lower}"
+    # TODO check the stock_filtering.ipynb for the latest and check
+    price_lower = 0.1
+    for eod in stock["eod_unadj"]:
+        if eod["adjClose"] < price_lower:
+            print(
+                f"{stock['symbol']} had a daily unadjusted price less that {price_lower}"
+            )
+            filtered[stock["symbol"]] = (
+                f"daily unadjusted price less that {price_lower}"
+            )
             return False
 
     return True

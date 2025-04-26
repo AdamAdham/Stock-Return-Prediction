@@ -237,6 +237,7 @@ def add_info(
     api_req_func,
     info_name,
     stock_params,
+    edit_data=None,
     const_params=None,
     sort_key=None,
     reverse=True,

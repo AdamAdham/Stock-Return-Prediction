@@ -336,10 +336,11 @@ def enrich_stocks_with_features(
                 print(f"Skipped stock {stock['symbol']} because was invalid")
                 continue
 
-            criteria_passed = filter_stock(stock, filtered)
-            if not criteria_passed:
-                print(f"Skipped stock {stock['symbol']} because was filtered")
-                continue
+            # TODO add the filter
+            # criteria_passed = filter_stock(stock, filtered)
+            # if not criteria_passed:
+            #     print(f"Skipped stock {stock['symbol']} because was filtered")
+            #     continue
 
             # Calculate features for the stock
             enriched_stock = get_features(stock)

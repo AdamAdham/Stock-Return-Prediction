@@ -1,6 +1,5 @@
 from datetime import datetime
 from src.utils.information import get_sic_industry_names
-from typing import Tuple
 
 
 def remove_duplicates_and_sort_by_date(market_cap_data: list) -> list:
@@ -42,7 +41,7 @@ def remove_duplicates_and_sort_by_date(market_cap_data: list) -> list:
     return unique_market_cap_data
 
 
-def get_stock_profiles(stocks_sic_codes: list, stock_list: list) -> Tuple[list, list]:
+def get_stock_profiles(stocks_sic_codes: list, stock_list: list) -> tuple[list, list]:
     """
     Matches stocks in sic_codes with additional details from stock_list using the symbol.
 
