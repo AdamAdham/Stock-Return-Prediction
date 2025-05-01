@@ -218,6 +218,7 @@ def basic_eda(
     hist_bins=30,
     correlation=True,
     distribution=True,
+    distribution_min_max=False,
     style="ggplot",
 ):
     """
@@ -285,6 +286,8 @@ def basic_eda(
 
         for i, col in enumerate(numeric_cols):
             sns.histplot(df[col], kde=True, bins=hist_bins, ax=axes[i])
+            if distribution_min_max:
+                plt.xlim(df[col].min(), df[col].max())
             axes[i].set_title(f"Distribution of {col}")
             axes[i].set_xlabel(col)
             axes[i].set_ylabel("Density")

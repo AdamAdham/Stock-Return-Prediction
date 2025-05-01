@@ -90,8 +90,9 @@ def json_to_dataframe(stock):
 
     static_metadata = {
         "symbol": stock["symbol"],
-        "sicCode_2": stock["sicCode_2"],
-        "exchangeShortName": stock["exchangeShortName"],
+        "sic_code_2": stock["sicCode_2"],
+        "sic_industry": stock["sicIndustry"],
+        "exchange_short_name": stock["exchangeShortName"],
         "exchange": stock["exchange"],
     }
 

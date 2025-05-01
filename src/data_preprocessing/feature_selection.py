@@ -133,17 +133,23 @@ def remove_stock_columns(
         "trading_days_count_monthly",
         "market_cap",
     ]
-    static_cols = ["symbol", "sicCode_2", "exchangeShortName", "exchange"]
+    static_columns = [
+        "symbol",
+        "sic_code_2",
+        "sic_industry",
+        "exchange_short_name",
+        "exchange",
+    ]
 
     # Get the static values as a single dict
-    static_info = df[static_cols].iloc[0].to_dict()
+    static_info = df[static_columns].iloc[0].to_dict()
 
     if columns is None:
         columns = []
         columns += current_cols if remove_current else []
         columns += lagged_cols if remove_lagged else []
         columns += subfeatures_cols if remove_subfeatures else []
-        columns += static_cols if remove_static else []
+        columns += static_columns if remove_static else []
         columns += additional_columns if additional_columns is not None else []
 
     if columns:

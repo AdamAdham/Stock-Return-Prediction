@@ -96,15 +96,33 @@ def sequential_cross_sectional_split(x, y, train_ratio=0.7, val_ratio=0.15):
 
 
 def fill_nan(df):
+    static_cols = [
+        "symbol",
+        "sic_code_2",
+        "sic_industry",
+        "exchange_short_name",
+        "exchange",
+    ]
+
     for col in df.columns:
+        # Skip static columns
+        if col in static_cols:
+            continue
         # Fill the initial NaN values with zeros, since no information can be put that will not be data leakage
         first_valid_index = df[col].first_valid_index()
-        integer_index = df.index.get_loc(first_valid_index)
 
-        # If there are nans at the start
-        if integer_index > 0:
-            df[col] = df[col].fillna(0, limit=integer_index)
+        # Check if this column has no valid values -> fill the whole column with 0s
+        if first_valid_index is None:
+            df[col] = df[col].fillna(0)
+        else:
+            # Contains valid values -> fill till the first valid value with 0s
+            integer_index = df.index.get_loc(first_valid_index)
 
-        # For remaining NaN values
+            # If there are NaN values at the start
+            if integer_index > 0:
+                df[col] = df[col].fillna(0, limit=integer_index)
+
+        # For remaining NaN values, use exponentially weighted mean
+        # TODO tinker with halflife
         df[col] = df[col].fillna(df[col].ewm(halflife=5, adjust=False).mean())
     return df

@@ -20,6 +20,7 @@ RAW_DIR_TEST = TEST_DIR / "raw"
 PROCESSED_DIR_TEST = TEST_DIR / "processed"
 DATAFRAMES_DIR_TEST = TEST_DIR / "dataframes"
 REFERENCE_DIR = DATA_DIR / "reference"
+EDA_DIR = DATA_DIR / "eda"
 
 # Metadata
 METADATA_DIR = DATA_DIR / "metadata"

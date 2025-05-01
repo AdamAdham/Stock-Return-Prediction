@@ -174,8 +174,8 @@ def calculate_dolvol(
     """
     Calculates the Dollar Volume (dolvol) factor for each month using pre-aggregated monthly dollar volume data.
 
-    The dolvol factor is defined as the natural logarithm of the average daily dollar volume
-    (price x volume) from two months_sorted prior to the current month.
+    The dolvol factor is defined as the natural logarithm of the sum of daily dollar volume
+    (price x volume).
 
     Parameters
     ----------
@@ -206,10 +206,7 @@ def calculate_dolvol(
         # No need for None handling since dollar_volume_monthly[month] cannot be None due to implementation at src.feature_engineering.utils.get_weekly_monthly_summary
         return {
             month: (
-                np.log(
-                    dollar_volume_monthly[month]["sum"]
-                    / dollar_volume_monthly[month]["count"]
-                )
+                np.log(dollar_volume_monthly[month]["sum"])
                 if dollar_volume_monthly[month]["sum"] != 0
                 else None
             )  # Can be that the only volumes present are 0
@@ -221,10 +218,7 @@ def calculate_dolvol(
     for i in range(len(months_sorted) - 2):
         curr_month = months_sorted[i]
         month_2 = months_sorted[i + 2]
-        avg_dv = (
-            dollar_volume_monthly[month_2]["sum"]
-            / dollar_volume_monthly[month_2]["count"]
-        )
+        avg_dv = dollar_volume_monthly[month_2]["sum"]
         dolvol_monthly[curr_month] = (
             np.log(avg_dv) if avg_dv != 0 else None
         )  # Can be that the only volumes present are 0
@@ -341,7 +335,7 @@ def calculate_zerotrade(
 
     The formula used is:
         - If turnover is zero:       zerotrade = zero_days
-        - If turnover is non-zero:   zerotrade = (zero_days + 1 / turnover) * (21 / trading_days)
+        - If turnover is non-zero:   zerotrade = (zero_days + (1 / turnover)) * (21 / trading_days)
 
     This metric is typically used to assess stock liquidity or trading inactivity.
 
@@ -370,7 +364,7 @@ def calculate_zerotrade(
         current_month = months_sorted[i]
         zero_days = zero_trading_days[current_month]
 
-        # Get turnover in the prior month
+        # Get turnover in the current month
         vol = vol_sum_monthly[current_month]
         shares = shares_monthly[current_month]
         turnover = vol / shares if shares != 0 else None  # Prevent division by zero

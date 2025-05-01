@@ -257,6 +257,8 @@ def get_features(stock: dict) -> dict:
 
 
 def enrich_stocks_with_features(
+    handle_market_return_values: bool = False,
+    handle_indmom_values: bool = False,
     start_index: int = 0,
     end_index: int | None = None,
     input_directory: str = RAW_DIR,
@@ -273,6 +275,12 @@ def enrich_stocks_with_features(
 
     Parameters
     ----------
+    handle_market_return_values : bool, optional
+        Flag to let the function handle market_returns_weekly.
+
+    handle_indmom_values : bool, optional
+        Flag to let the function handle indmom.
+
     start_index : int, optional
         Index to start processing stocks from. Defaults to 0.
 
@@ -311,10 +319,15 @@ def enrich_stocks_with_features(
     """
 
     stocks = load_all_stocks(input_directory)
-    sic_codes_names = get_sic_industry_names()
 
-    indmom = {sic_code: {} for sic_code in sic_codes_names}
-    market_return_details = {}
+    # If handler flags are True -> initialize appropriately else -> assign None
+    if handle_indmom_values:
+        sic_codes_names = get_sic_industry_names()
+        indmom = {sic_code: {} for sic_code in sic_codes_names}
+    else:
+        indmom = None
+    market_return_details = {} if handle_market_return_values else None
+
     success = []
     failed = []
     invalid = {}
@@ -336,21 +349,17 @@ def enrich_stocks_with_features(
                 print(f"Skipped stock {stock['symbol']} because was invalid")
                 continue
 
-            # TODO add the filter
-            # criteria_passed = filter_stock(stock, filtered)
-            # if not criteria_passed:
-            #     print(f"Skipped stock {stock['symbol']} because was filtered")
-            #     continue
-
             # Calculate features for the stock
             enriched_stock = get_features(stock)
 
-            # Update indmom and market returns sum and count to be averaged once done
-            indmom = handle_indmom(enriched_stock, indmom)
+            if handle_indmom_values:
+                # Update indmom and market returns sum and count to be averaged once done
+                indmom = handle_indmom(enriched_stock, indmom)
 
-            market_return_details = handle_market_returns_weekly(
-                enriched_stock, market_return_details
-            )
+            if handle_market_return_values:
+                market_return_details = handle_market_returns_weekly(
+                    enriched_stock, market_return_details
+                )
 
             # Save stock to disk
             output_path = output_directory / f"{stock['symbol']}.json"
@@ -513,7 +522,9 @@ def enrich_stocks_with_aggregate_features(
             stock["features"]["monthly"]["idiovol_current"] = idiovol_current
 
             sic_2 = stock["sicCode_2"]
-            stock["features"]["indmom"] = indmom[sic_2]
+            stock["features"]["monthly"]["indmom"] = {
+                month: indmom[sic_2][month] for month in months_sorted
+            }
 
             # Save stock to disk
             output_path = output_directory / f"{stock['symbol']}.json"

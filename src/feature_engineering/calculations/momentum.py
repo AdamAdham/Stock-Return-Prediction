@@ -92,7 +92,7 @@ def calculate_mom12m(
 ) -> dict[str, float | None]:
     """
     Calculates the 12-month momentum (rate of return) for each month.
-    The window used for calculation if current month is '2023-09' is either from `2023-09` to `2022-10` (inclusive) if current=True,
+    The window used for calculation if current month is '2023-09' is either from `2023-09` to `2022-9` (inclusive) if current=True,
     or from the previous month '2023-08' to '2023-09' otherwise.
 
     Parameters
@@ -113,8 +113,8 @@ def calculate_mom12m(
         data to calculate the momentum for a particular month, the value will be `None`.
     """
     if current:
-        # 11 not 12 such that returns are calculated from 2023-09 to 2022-10 (both inclusive) so it will be 12 months since current is included
-        return calculate_momentum(months_sorted, prices_monthly, 0, 11)
+        # Returns are calculated from 2023-10 to 2022-10 (both inclusive) so it will be 12 months since if 3 months from 2023-06 till 2023-03 will calculate the whole of 6,5,4 and not 3 since it is the closing price
+        return calculate_momentum(months_sorted, prices_monthly, 0, 12)
     else:
         return calculate_momentum(months_sorted, prices_monthly, 1, 12)
 
@@ -123,7 +123,7 @@ def calculate_mom36m(
     months_sorted: list[str], prices_monthly: dict[str, float]
 ) -> dict[str, float | None]:
     """
-    Calculates the 36-month momentum (rate of return) for each month.
+    Calculates the 36-month momentum (rate of return) for each month excluding the first 12 months .
 
     Parameters
     ----------
@@ -140,7 +140,8 @@ def calculate_mom36m(
         are the calculated momentum values (rate of return) for each month. If there is insufficient
         data to calculate the momentum for a particular month, the value will be `None`.
     """
-    return calculate_momentum(months_sorted, prices_monthly, 13, 36)
+    # 12 because captures the 2 years if 13 then will skip the change in momentum from closing of 12 till closing 13 (change of month 12)
+    return calculate_momentum(months_sorted, prices_monthly, 12, 36)
 
 
 def calculate_chmom(
@@ -151,7 +152,7 @@ def calculate_chmom(
 
     CHMOM is defined as the difference between:
         - The 6-month momentum from t-6 to t-1 (or t-6 to t if `current=True`)
-        - The 6-month momentum from t-12 to t-7
+        - The 6-month momentum from t-12 to t-7 (or t-12 to t-6 if `current=True`)
 
     The function loops over months in `months_sorted` (from latest to oldest) and for each,
     computes the change in momentum using the provided monthly closing prices.
@@ -182,31 +183,35 @@ def calculate_chmom(
 
         # Start from current month or next month
         if current:
-            start = curr_month
+            # Both mom1 and mom2 are for 6 months
+            first_step = curr_month
+            second_step = months_sorted[i + 6]  # Month t-6
+            third_step = second_step  # Month t-6
+            fourth_step = months_sorted[i + 12]  # Month t-12
         else:
-            start = months_sorted[i + 1]  # Previous month
-
-        t_6 = months_sorted[i + 6]  # Month t-6
-        t_7 = months_sorted[i + 7]  # Month t-7
-        t_12 = months_sorted[i + 12]  # Month t-12
+            # Both mom1 and mom2 are for 5 months
+            first_step = months_sorted[i + 1]  # Previous month
+            second_step = months_sorted[i + 6]  # Month t-6
+            third_step = months_sorted[i + 7]  # Month t-7
+            fourth_step = months_sorted[i + 12]  # Month t-12
 
         if (
-            prices_monthly[t_6] == 0 or prices_monthly[t_12] == 0
+            prices_monthly[second_step] == 0 or prices_monthly[fourth_step] == 0
         ):  # Prevent division by zero
             chmom_per_month[curr_month] = None
         else:
-            mom1_6 = calculate_return(
-                prices_monthly[start],
-                prices_monthly[t_6],
+            mom1 = calculate_return(
+                prices_monthly[first_step],
+                prices_monthly[second_step],
                 round_to=RETURN_ROUND_TO,
             )
-            mom7_12 = calculate_return(
-                prices_monthly[t_7],
-                prices_monthly[t_12],
+            mom2 = calculate_return(
+                prices_monthly[third_step],
+                prices_monthly[fourth_step],
                 round_to=RETURN_ROUND_TO,
             )
 
-            chmom_per_month[curr_month] = mom1_6 - mom7_12
+            chmom_per_month[curr_month] = mom1 - mom2
 
     # Make all months_sorted that cannot be calculated to None
     for i in range(len(months_sorted) - 12, len(months_sorted)):
