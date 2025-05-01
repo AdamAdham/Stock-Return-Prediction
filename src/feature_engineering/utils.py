@@ -93,6 +93,7 @@ def get_weekly_monthly_summary(
     dict[str, float],  # prices_weekly
     list[str],  # months_sorted
     dict[str, str],  # month_latest_week
+    dict[str, str],  # month_weeks_map
     dict[str, float],  # prices_monthly
     dict[str, dict[str, float]],  # dollar_volume_monthly
     dict[str, float],  # vol_sum_monthly
@@ -133,6 +134,8 @@ def get_weekly_monthly_summary(
             List of unique months (formatted as "YYYY-MM") in the order they appear in the input (latest to earliest).
         - month_latest_week : dict
             Mapping from each month to its latest week identifier (used for aligning weekly/monthly calculations).
+        - month_weeks_map : dict
+            Mapping from each month (e.g. "2023-08") to a list of ISO weeks (e.g. ["2023-31", "2023-32"]).
         - prices_monthly : dict
             Mapping from each month to the latest available closing price.
         - dollar_volume_monthly : dict
@@ -158,6 +161,7 @@ def get_weekly_monthly_summary(
 
     prices_weekly = {}
     month_latest_week = {}
+    month_weeks_map = defaultdict(set)
     weeks_sorted = []
 
     vol_sum_monthly = {}
@@ -202,8 +206,12 @@ def get_weekly_monthly_summary(
             prices_weekly[week_key] = price
             weeks_sorted.append(week_key)
 
+        # Latest week in the month
         if month not in month_latest_week:
             month_latest_week[month] = week_key
+
+        # Weeks per month
+        month_weeks_map[month].add(week_key)
 
         # Sum the daily volume for the month
         vol_sum_monthly[month] = vol_sum_monthly.get(month, 0) + volume
@@ -250,11 +258,16 @@ def get_weekly_monthly_summary(
             # since no returns present and so the np.std([]) to be None
             daily_returns_monthly[month] = []
 
+    # Convert sets into sorted lists
+    month_weeks_map = {
+        month: sorted(list(weeks)) for month, weeks in month_weeks_map.items()
+    }
     return (
         weeks_sorted,
         prices_weekly,
         months_sorted,
         month_latest_week,
+        month_weeks_map,
         prices_monthly,
         dollar_volume_monthly,
         vol_sum_monthly,

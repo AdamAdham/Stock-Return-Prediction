@@ -1,4 +1,7 @@
 import numpy as np
+from scipy.stats import linregress
+
+import matplotlib.pyplot as plt
 
 
 def calculate_retvol_std(
@@ -44,6 +47,98 @@ def calculate_retvol_std(
     return retvol
 
 
+# def calculate_idiovol(
+#     weeks_sorted: list[str],
+#     months_sorted: list[str],
+#     month_latest_week: dict[str, str],
+#     weekly_returns: dict[str, float],
+#     market_weekly_returns: dict[str, float],
+#     interval: int = 156,
+#     increment: int = 4,
+#     current: bool = False,
+# ) -> dict[str, float | None]:
+#     """
+#     Calculate idiosyncratic volatility (idiovol) for each month using a 3-year rolling window
+#     of weekly returns, measured as the standard deviation of the difference between a stock's
+#     return and the market return over the same period.
+
+#     Parameters
+#     ----------
+#     weeks_sorted: list
+#         Sorted list of weeks in "YYYY-WW" format.
+
+#     months_sorted
+#         A list of strings representing months_sorted in "YYYY-MM" format, ordered from most recent to oldest
+
+#     month_latest_week
+#         A dictionary mapping each month to its corresponding last week as a (year, week) tuple
+
+#     weekly_returns
+#         A dictionary mapping (year, week) tuples to the stock's weekly returns (float)
+
+#     market_weekly_returns
+#         A dictionary mapping (year, week) tuples to the market's weekly returns (float)
+
+#     interval
+#         Number of weeks in the rolling window used to calculate idiovol (default is 156, or approximately 3 years)
+
+#     increment
+#         Step size in weeks between calculations, typically 4 to move month by month (default is 4)
+
+#     current : bool, optional
+#         - If True, starts with the current month in the sliding window.
+#         - If False (default), starts with the previous month in the sliding window.
+
+#     Returns
+#     --------
+#     dict
+#         A dictionary mapping each month (string) to its corresponding idiovol value (float), or None if insufficient data
+#     """
+
+#     idiovol_by_month = {}
+
+#     # Generate aligned lists of stock and market returns
+#     weekly_returns_list = [weekly_returns[k] for k in weeks_sorted]
+#     market_returns_list = [market_weekly_returns[k] for k in weeks_sorted]
+
+#     month_current_index = 0
+#     if current:
+#         month_start = months_sorted[month_current_index]
+#     else:
+#         month_start = months_sorted[1]
+
+#     week_start = month_latest_week[month_start]
+
+#     try:
+#         week_start = weeks_sorted.index(week_start)
+#     except ValueError:
+#         print(f"Week {week_start} not found in weekly_returns keys.")
+#         return {m: None for m in months_sorted}
+
+#     while month_current_index < len(months_sorted):
+
+#         if week_start + interval < len(weeks_sorted):
+#             # Get stock and market returns for the interval provided
+#             stock_window = weekly_returns_list[week_start : week_start + interval]
+#             market_window = market_returns_list[week_start : week_start + interval]
+
+#             # Compute residuals and standard deviation
+#             residuals_squared = [
+#                 (s - m) ** 2 for s, m in zip(stock_window, market_window)
+#             ]
+#             idiovol = (sum(residuals_squared) / interval) ** 0.5
+
+#             idiovol_by_month[months_sorted[month_current_index]] = idiovol
+#         else:
+#             # If not enough data, assign None
+#             idiovol_by_month[months_sorted[month_current_index]] = None
+
+#         week_start += increment
+#         month_current_index += 1
+
+#     return idiovol_by_month
+
+
 def calculate_idiovol(
     weeks_sorted: list[str],
     months_sorted: list[str],
@@ -56,8 +151,8 @@ def calculate_idiovol(
 ) -> dict[str, float | None]:
     """
     Calculate idiosyncratic volatility (idiovol) for each month using a 3-year rolling window
-    of weekly returns, measured as the standard deviation of the difference between a stock's
-    return and the market return over the same period.
+    of weekly returns, measured as the standard deviation of the regression residuals between
+    the market returns and the stock's returns.
 
     Parameters
     ----------
@@ -104,30 +199,33 @@ def calculate_idiovol(
     else:
         month_start = months_sorted[1]
 
-    week_start = month_latest_week[month_start]
+    week_start_key = month_latest_week[month_start]
 
     try:
-        week_start = weeks_sorted.index(week_start)
+        week_start = weeks_sorted.index(week_start_key)
     except ValueError:
-        print(f"Week {week_start} not found in weekly_returns keys.")
+        print(f"Week {week_start_key} not found in weekly_returns keys.")
         return {m: None for m in months_sorted}
 
     while month_current_index < len(months_sorted):
 
         if week_start + interval < len(weeks_sorted):
-            # Get stock and market returns for the interval provided
+            # Get the data for this window
             stock_window = weekly_returns_list[week_start : week_start + interval]
             market_window = market_returns_list[week_start : week_start + interval]
 
-            # Compute residuals and standard deviation
-            residuals_squared = [
-                (s - m) ** 2 for s, m in zip(stock_window, market_window)
-            ]
-            idiovol = (sum(residuals_squared) / interval) ** 0.5
+            # Run linear regression: stock = alpha + beta * market + residual
+            slope, intercept, _, _, _ = linregress(market_window, stock_window)
+
+            # Compute residuals: actual - predicted
+            predicted = [intercept + slope * m for m in market_window]
+            residuals = [actual - pred for actual, pred in zip(stock_window, predicted)]
+
+            # Idiosyncratic volatility = std. dev. of residuals
+            idiovol = np.std(residuals)
 
             idiovol_by_month[months_sorted[month_current_index]] = idiovol
         else:
-            # If not enough data, assign None
             idiovol_by_month[months_sorted[month_current_index]] = None
 
         week_start += increment

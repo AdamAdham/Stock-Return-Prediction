@@ -104,6 +104,7 @@ def get_features(stock: dict) -> dict:
         prices_weekly,
         months_sorted,
         month_latest_week,
+        month_weeks_map,
         prices_monthly,
         dollar_volume_monthly,
         vol_sum_monthly,
@@ -135,6 +136,7 @@ def get_features(stock: dict) -> dict:
     subfeatures["lists"]["weeks_sorted"] = weeks_sorted
     subfeatures["monthly"]["prices_monthly"] = prices_monthly
     subfeatures["monthly"]["month_latest_week"] = month_latest_week
+    subfeatures["monthly"]["month_weeks_map"] = month_weeks_map
     subfeatures["weekly"]["returns_weekly"] = returns_weekly
 
     # Feature Engineering
