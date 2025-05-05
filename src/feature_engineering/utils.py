@@ -2,6 +2,9 @@ from datetime import datetime
 from src.config.settings import RETURN_ROUND_TO
 from collections import defaultdict
 
+import pandas as pd
+import numpy as np
+
 
 def calculate_return(
     price_later: float, price_earlier: float, round_to: int | None = None
@@ -93,7 +96,6 @@ def get_weekly_monthly_summary(
     dict[str, float],  # prices_weekly
     list[str],  # months_sorted
     dict[str, str],  # month_latest_week
-    dict[str, str],  # month_weeks_map
     dict[str, float],  # prices_monthly
     dict[str, dict[str, float]],  # dollar_volume_monthly
     dict[str, float],  # vol_sum_monthly
@@ -134,8 +136,6 @@ def get_weekly_monthly_summary(
             List of unique months (formatted as "YYYY-MM") in the order they appear in the input (latest to earliest).
         - month_latest_week : dict
             Mapping from each month to its latest week identifier (used for aligning weekly/monthly calculations).
-        - month_weeks_map : dict
-            Mapping from each month (e.g. "2023-08") to a list of ISO weeks (e.g. ["2023-31", "2023-32"]).
         - prices_monthly : dict
             Mapping from each month to the latest available closing price.
         - dollar_volume_monthly : dict
@@ -161,7 +161,6 @@ def get_weekly_monthly_summary(
 
     prices_weekly = {}
     month_latest_week = {}
-    month_weeks_map = defaultdict(set)
     weeks_sorted = []
 
     vol_sum_monthly = {}
@@ -210,9 +209,6 @@ def get_weekly_monthly_summary(
         if month not in month_latest_week:
             month_latest_week[month] = week_key
 
-        # Weeks per month
-        month_weeks_map[month].add(week_key)
-
         # Sum the daily volume for the month
         vol_sum_monthly[month] = vol_sum_monthly.get(month, 0) + volume
 
@@ -258,16 +254,11 @@ def get_weekly_monthly_summary(
             # since no returns present and so the np.std([]) to be None
             daily_returns_monthly[month] = []
 
-    # Convert sets into sorted lists
-    month_weeks_map = {
-        month: sorted(list(weeks)) for month, weeks in month_weeks_map.items()
-    }
     return (
         weeks_sorted,
         prices_weekly,
         months_sorted,
         month_latest_week,
-        month_weeks_map,
         prices_monthly,
         dollar_volume_monthly,
         vol_sum_monthly,
@@ -562,3 +553,84 @@ def handle_market_returns_weekly(
             market_return_details[week]["count"] += 1
 
     return market_return_details
+
+
+def invalidate_weeks_by_valid_months(
+    weekly_returns_df, month_to_weeks, symbol_to_valid_months
+):
+    """
+    Invalidate weekly returns for each symbol in weekly_returns_df based on whether the week
+    belongs to a valid month for that symbol.
+
+    Parameters:
+    - weekly_returns_df: pd.DataFrame
+        Rows: week keys in "YYYY-WW" format
+        Columns: stock symbols
+        Values: weekly returns
+
+    - month_to_weeks: dict
+        Format: { "YYYY-MM": ["YYYY-WW", ...] }
+
+    - symbol_to_valid_months: dict
+        Format: { "SYMBOL": ["YYYY-MM", ...] }
+
+    Returns:
+    - pd.DataFrame: same shape as weekly_returns_df but with invalid weeks set to NaN
+    """
+    # Build reverse mapping: symbol -> set of valid weeks
+    symbol_to_valid_weeks = {}
+    for symbol, valid_months in symbol_to_valid_months.items():
+        valid_weeks = set()
+        for month in valid_months:
+            valid_weeks.update(month_to_weeks.get(month, []))
+        symbol_to_valid_weeks[symbol] = valid_weeks
+
+    # Create a copy to avoid modifying original
+    result_df = weekly_returns_df.copy()
+
+    # Invalidate weeks
+    for symbol in result_df.columns:
+        if symbol not in symbol_to_valid_weeks:
+            # Invalidate all weeks if no valid months
+            result_df[symbol] = np.nan
+        else:
+            valid_weeks = symbol_to_valid_weeks[symbol]
+            mask = ~result_df.index.isin(valid_weeks)
+            result_df.loc[mask, symbol] = np.nan
+
+    return result_df
+
+
+def month_to_weeks_mapper(
+    first_date: str = "1962-01-01", last_date: str = "2025-05-31"
+) -> dict[str, set]:
+    """
+    Maps each month in the given date range to the set of ISO weeks that overlap with it.
+
+    Parameters
+    ----------
+    first_date : str, optional
+        The start date in "YYYY-MM-DD" format (default is "1962-01-01").
+    last_date : str, optional
+        The end date in "YYYY-MM-DD" format (default is "2025-05-31").
+
+    Returns
+    -------
+    dict[str, set]
+        A dictionary where each key is a month in "YYYY-MM" format and the value is a set of
+        week identifiers in "YYYY-WW" ISO week format that overlap with that month.
+    """
+    all_dates = pd.date_range(start=first_date, end=last_date, freq="D")
+
+    month_to_weeks = {}
+
+    for date in all_dates:
+        month = f"{date.year}-{date.month:02d}"
+        year, week_number, _ = date.isocalendar()
+        week_key = f"{year}-{week_number:02d}"  # Week string in "YYYY-WW" format
+
+        if month not in month_to_weeks:
+            month_to_weeks[month] = set()
+
+        month_to_weeks[month].add(week_key)
+    month_to_weeks

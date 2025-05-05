@@ -55,6 +55,7 @@ def remove_stock_columns(
     columns: list[str] | None = None,
     remove_current: bool = False,
     remove_lagged: bool = True,
+    remove_aggr: bool = False,
     remove_subfeatures: bool = True,
     remove_static: bool = True,
     additional_columns: list[str] | None = None,
@@ -77,6 +78,8 @@ def remove_stock_columns(
         Whether to remove 'current' columns (default is False).
     remove_lagged : bool, optional
         Whether to remove 'lagged' columns (default is True).
+    remove_aggr : bool, optional
+        Whether to remove aggregate columns (idiovol, beta, betasq with their current variants) columns (default is True).
     remove_subfeatures : bool, optional
         Whether to remove 'subfeatures' columns (default is True).
     remove_static : bool, optional
@@ -110,9 +113,6 @@ def remove_stock_columns(
         "maxret_current",
         "mve_current",
         "dolvol_current",
-        "beta_current",
-        "betasq_current",
-        "idiovol_current",
     ]
     lagged_cols = [
         "mom12m",
@@ -120,10 +120,17 @@ def remove_stock_columns(
         "maxret",
         "mve",
         "dolvol",
+    ]
+
+    aggregate_cols = [
+        "beta_current",
+        "betasq_current",
+        "idiovol_current",
         "beta",
         "betasq",
         "idiovol",
     ]
+
     subfeatures_cols = [
         "rolling_avg_3y_returns_weekly_by_month",
         "prices_monthly",
@@ -150,6 +157,7 @@ def remove_stock_columns(
         columns += lagged_cols if remove_lagged else []
         columns += subfeatures_cols if remove_subfeatures else []
         columns += static_columns if remove_static else []
+        columns += aggregate_cols if remove_aggr else []
         columns += additional_columns if additional_columns is not None else []
 
     if columns:

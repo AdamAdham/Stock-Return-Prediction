@@ -104,7 +104,6 @@ def get_features(stock: dict) -> dict:
         prices_weekly,
         months_sorted,
         month_latest_week,
-        month_weeks_map,
         prices_monthly,
         dollar_volume_monthly,
         vol_sum_monthly,
@@ -136,8 +135,11 @@ def get_features(stock: dict) -> dict:
     subfeatures["lists"]["weeks_sorted"] = weeks_sorted
     subfeatures["monthly"]["prices_monthly"] = prices_monthly
     subfeatures["monthly"]["month_latest_week"] = month_latest_week
-    subfeatures["monthly"]["month_weeks_map"] = month_weeks_map
     subfeatures["weekly"]["returns_weekly"] = returns_weekly
+    subfeatures["monthly"]["trading_days_count_monthly"] = trading_days_count_monthly
+    subfeatures["monthly"][
+        "zero_trading_days_count_monthly"
+    ] = zero_trading_days_count_monthly
 
     # Feature Engineering
     features = {"weekly": {}, "monthly": {}, "quarterly": {}, "annual": {}}
@@ -170,14 +172,14 @@ def get_features(stock: dict) -> dict:
 
         shares_monthly = time_call(get_shares_monthly, outstanding_shares)
 
-        features["monthly"]["zerotrade"] = time_call(
-            calculate_zerotrade,
-            months_sorted,
-            vol_sum_monthly,
-            shares_monthly,
-            zero_trading_days_count_monthly,
-            trading_days_count_monthly,
-        )
+        # features["monthly"]["zerotrade"] = time_call(
+        #     calculate_zerotrade,
+        #     months_sorted,
+        #     vol_sum_monthly,
+        #     shares_monthly,
+        #     zero_trading_days_count_monthly,
+        #     trading_days_count_monthly,
+        # )
         features["monthly"]["turn"] = time_call(
             calculate_turn, months_sorted, vol_sum_monthly, shares_monthly
         )
@@ -188,20 +190,14 @@ def get_features(stock: dict) -> dict:
         # Populate intermediate variables
         subfeatures["monthly"]["vol_sum_monthly"] = vol_sum_monthly
         subfeatures["monthly"]["shares_monthly"] = shares_monthly
-        subfeatures["monthly"][
-            "zero_trading_days_count_monthly"
-        ] = zero_trading_days_count_monthly
-        subfeatures["monthly"][
-            "trading_days_count_monthly"
-        ] = trading_days_count_monthly
+
     else:
         features["monthly"]["turn"] = None
         features["monthly"]["std_turn"] = None
-        features["monthly"]["zerotrade"] = None
+        # features["monthly"]["zerotrade"] = None
         subfeatures["monthly"]["vol_sum_monthly"] = None
         subfeatures["monthly"]["shares_monthly"] = None
         subfeatures["monthly"]["zero_trading_days_count_monthly"] = None
-        subfeatures["monthly"]["trading_days_count_monthly"] = None
 
     # Calculate all features that depend on the availability of market cap
     if market_caps:
@@ -368,7 +364,7 @@ def enrich_stocks_with_features(
             write_json(output_path, enriched_stock)
 
             print(f"Stock {stock['symbol']} , Index {i} saved")
-            success.append(stock["symbol"])
+            success.append((stock["symbol"], i))
 
         except Exception as e:
             # Print detailed error information
@@ -382,21 +378,23 @@ def enrich_stocks_with_features(
             print(error_message)
             print("-" * 100, "\n \n \n")
 
-            failed.append(stock["symbol"])
+            failed.append((stock["symbol"], i))
             continue
 
     # Get average of all months_sorted for each SIC code
-    for sic, months_sorted in indmom.items():
-        for month, data in months_sorted.items():
-            indmom[sic][month] = data["total"] / data["count"]
+    if handle_indmom_values:
+        for sic, months_sorted in indmom.items():
+            for month, data in months_sorted.items():
+                indmom[sic][month] = data["total"] / data["count"]
 
     # Get average of weekly market returns
     market_returns_weekly = {}
-    for week, returns in market_return_details.items():
+    if handle_market_return_values:
+        for week, returns in market_return_details.items():
 
-        market_returns_weekly[week] = (
-            returns["sum"] / returns["count"] if returns["count"] != 0 else None
-        )  # Prevent division by zero
+            market_returns_weekly[week] = (
+                returns["sum"] / returns["count"] if returns["count"] != 0 else None
+            )  # Prevent division by zero
 
     return {"indmom": indmom, "market_returns_weekly": market_returns_weekly}, {
         "success": success,

@@ -208,7 +208,7 @@ def calculate_dolvol(
             month: (
                 np.log(dollar_volume_monthly[month]["sum"])
                 if dollar_volume_monthly[month]["sum"] != 0
-                else None
+                else 0
             )  # Can be that the only volumes present are 0
             for month in months_sorted
         }
@@ -220,7 +220,7 @@ def calculate_dolvol(
         month_2 = months_sorted[i + 2]
         avg_dv = dollar_volume_monthly[month_2]["sum"]
         dolvol_monthly[curr_month] = (
-            np.log(avg_dv) if avg_dv != 0 else None
+            np.log(avg_dv) if avg_dv != 0 else 0
         )  # Can be that the only volumes present are 0
 
     # Make all months_sorted that cannot be calculated to None

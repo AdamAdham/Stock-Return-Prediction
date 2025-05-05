@@ -1,6 +1,7 @@
 from src.feature_engineering.utils import calculate_return
 
 from src.config.settings import RETURN_ROUND_TO
+import pandas as pd
 
 
 def calculate_momentum(
@@ -313,3 +314,80 @@ def handle_indmom(
             indmom[sic][month]["count"] += 1
 
     return indmom
+
+
+def get_indmom_df(df: pd.DataFrame):
+    """
+    Computes industry-level 12-month momentum (indmom) for each industry-month pair.
+
+    The function calculates the average of the 'mom12m_current' column for each combination
+    of 'sic_code_2' (industry code) and month (from the index), producing both a DataFrame
+    and a dictionary representation.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        A DataFrame containing at least the columns 'sic_code_2' and 'mom12m_current',
+        with a datetime index representing months (e.g., "YYYY-MM").
+
+    Returns
+    -------
+    tuple
+        - dict: A nested dictionary where each key is a 'sic_code_2' value, and each value
+          is another dictionary mapping each month to its corresponding industry momentum value.
+        - pd.DataFrame: A DataFrame with a MultiIndex of ['sic_code_2', month] and a column 'indmom'
+          representing the computed average momentum.
+    """
+
+    # Every sic code has all its month and the mean of that month
+    industry_mom_df = (
+        df.groupby(["sic_code_2", df.index])["mom12m_current"]
+        .mean()
+        .rename("indmom")
+        .to_frame()
+    )
+
+    industry_mom_dict = (
+        industry_mom_df.reset_index()
+        # For each sicCode
+        .groupby("sic_code_2")
+        # each group g is a df of columns sic_code_2, level_1 (months), indmom
+        # so g.iloc[:,1] is all the rows of months
+        # so we just zip months and indmom together and convert to dict by having the key as the first value in the tuple and value the second
+        .apply(lambda g: dict(zip(g.iloc[:, 1], g["indmom"]))).to_dict()
+    )
+
+    return industry_mom_dict, industry_mom_df
+
+
+from src.feature_engineering.utils import (
+    invalidate_weeks_by_valid_months,
+    month_to_weeks_mapper,
+)
+from typing import Iterator
+
+
+def get_market_returns_weekly_df(
+    stocks: Iterator[dict],
+    symbol_to_valid_months: dict,
+    first_date: str = "1962-01-01",
+    last_date: str = "2025-05-31",
+) -> pd.DataFrame:
+    returns_weekly_dfs = []
+    for i, stock in enumerate(stocks):
+        df = pd.DataFrame(
+            {stock["symbol"]: stock["subfeatures"]["weekly"]["returns_weekly"]}
+        )
+        returns_weekly_dfs.append(df)
+    returns_weekly_dfs_combined = pd.concat(returns_weekly_dfs, axis=1)
+
+    month_to_weeks = month_to_weeks_mapper(first_date=first_date, last_date=last_date)
+    valid_weekly_returns = invalidate_weeks_by_valid_months(
+        returns_weekly_dfs_combined, month_to_weeks, symbol_to_valid_months
+    )
+    mean_returns = valid_weekly_returns.mean(axis=1, skipna=True)
+    market_returns_weekly = pd.DataFrame(
+        {"mean_return": mean_returns}, index=valid_weekly_returns.index
+    )
+
+    return market_returns_weekly
