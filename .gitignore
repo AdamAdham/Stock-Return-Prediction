@@ -1,6 +1,10 @@
 data/stocks/raw/*
 data/stocks/processed/*
 data/stocks/dataframes/*
+data/stocks/raw_new/*
+data/stocks/processed_new/*
+data/stocks/dataframes_new/*
+data/stocks/old
 data/tests/*
 data/tests/processed/*
 .env

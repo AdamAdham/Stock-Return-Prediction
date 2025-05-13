@@ -26,10 +26,18 @@ def check_nans_only_at_top(df: pd.DataFrame) -> dict[str, bool]:
         if first_valid_label is None:
             result[col] = True  # All NaNs
             continue
+
         # Convert label to positional index
         pos = df.index.get_loc(first_valid_label)
-        non_nan_after = df[col].iloc[pos:].isna().any()
-        result[col] = not non_nan_after
+        if pos > 0:
+            indexer = pd.concat(
+                [
+                    pd.Series([False] * pos, index=df.index[0:pos]),
+                    df[col].iloc[pos:].isna(),
+                ]
+            )
+            non_nan_after = df[indexer].index.to_list()
+            result[col] = non_nan_after
     return result
 
 

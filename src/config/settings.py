@@ -10,8 +10,11 @@ DATA_DIR = PROJECT_ROOT / "data"
 # Stocks
 STOCKS_DIR = DATA_DIR / "stocks"
 RAW_DIR = STOCKS_DIR / "raw"
+RAW_NEW_DIR = STOCKS_DIR / "raw_new"
 PROCESSED_DIR = STOCKS_DIR / "processed"
+PROCESSED_NEW_DIR = STOCKS_DIR / "processed_new"
 DATAFRAMES_DIR = STOCKS_DIR / "dataframes"
+DATAFRAMES_NEW_DIR = STOCKS_DIR / "dataframes_new"
 
 # Tests
 TEST_DIR = DATA_DIR / "tests"

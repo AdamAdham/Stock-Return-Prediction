@@ -12,7 +12,7 @@ def get_macro_data() -> pd.DataFrame:
         macro["yyyymm"].astype(str).str[:4] + "-" + macro["yyyymm"].astype(str).str[4:]
     )
     macro.set_index("yyyymm", inplace=True)
-    macro.index.name = None
+    macro.index.name = "month"
 
     # Remove commas from column Index
     macro["Index"] = macro["Index"].str.replace(",", "").astype("float64")

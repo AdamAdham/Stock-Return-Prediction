@@ -265,3 +265,10 @@ def get_sic_division(sic_2: str) -> str:
     }
 
     return industry_mapping[sic_2]
+
+
+def get_sic_mapping(sic_list):
+    sic_codes = [int(code) for code in set(sic_list)]
+    sorted_sic = sorted(sic_codes)
+    sic_map = {int(v): i for i, v in enumerate(sorted_sic)}
+    return sic_map

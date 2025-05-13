@@ -6,28 +6,12 @@ from src.utils.disk_io import load_all_stocks
 from sklearn.preprocessing import StandardScaler
 
 
-def fill_quarterly_annual(df, inplace=True):
-    # Prevent inplace changes
-    if inplace:
-        df_temp = df
-    else:
-        df_temp = df.copy()
-
-    # Fill the quarterly and annual columns with the most recent non NaN entry
-    columns = [
-        "ep_quarterly",
-        "sp_quarterly",
-        "agr_quarterly",
-        "ep_annual",
-        "sp_annual",
-        "agr_annual",
-    ]
-    df_temp[columns] = df_temp[columns].ffill()
-
-    return df_temp
+# Scaling
 
 
-def scale_df(df, target_col, scaler_class=StandardScaler, ratio=0.7):
+def scale_df(
+    df, target_col, train_end_date=None, scaler_class=StandardScaler, ratio=0.7
+):
     """
     Scales the features and target column of a DataFrame using a specified scaler,
     fitting the scalers only on a portion of the data (typically the training set).
@@ -69,10 +53,14 @@ def scale_df(df, target_col, scaler_class=StandardScaler, ratio=0.7):
 
     # Fit scalers only on the training portion
     scaler_x = scaler_class()
-    scaler_x.fit(df.iloc[:split_idx][columns_x])
-
     scaler_y = scaler_class()
-    scaler_y.fit(df.iloc[:split_idx][[target_col]])
+
+    if train_end_date is not None:
+        scaler_x.fit(df.loc[df.index < train_end_date][columns_x])
+        scaler_y.fit(df.loc[df.index < train_end_date][[target_col]])
+    else:
+        scaler_x.fit(df.iloc[:split_idx][columns_x])
+        scaler_y.fit(df.iloc[:split_idx][[target_col]])
 
     # Transform the full dataset using the fitted scalers
     df_scaled = pd.DataFrame(
@@ -81,6 +69,39 @@ def scale_df(df, target_col, scaler_class=StandardScaler, ratio=0.7):
     df_scaled[target_col] = scaler_y.transform(df[[target_col]])
 
     return df_scaled, scaler_x, scaler_y
+
+
+def scale_train_val_test(train, val, test, scaler_class, target_col):
+    if train.empty:
+        raise ValueError("Training data is empty at scaling.")
+
+    columns_x = train.columns.difference([target_col]).tolist()
+
+    scaler_x = scaler_class()
+    scaler_x.fit(train[columns_x])
+
+    scaler_y = scaler_class()
+    scaler_y.fit(train[[target_col]])
+
+    train_scaled = pd.DataFrame(
+        scaler_x.transform(train[columns_x]), columns=columns_x, index=train.index
+    )
+    train_scaled[target_col] = scaler_y.transform(train[[target_col]])
+
+    val_scaled = pd.DataFrame(
+        scaler_x.transform(val[columns_x]), columns=columns_x, index=val.index
+    )
+    val_scaled[target_col] = scaler_y.transform(val[[target_col]])
+
+    test_scaled = pd.DataFrame(
+        scaler_x.transform(test[columns_x]), columns=columns_x, index=test.index
+    )
+    test_scaled[target_col] = scaler_y.transform(test[[target_col]])
+
+    return train_scaled, val_scaled, test_scaled, scaler_x, scaler_y
+
+
+# Splits
 
 
 def sequential_cross_sectional_split(x, y, train_ratio=0.7, val_ratio=0.15):
@@ -93,6 +114,19 @@ def sequential_cross_sectional_split(x, y, train_ratio=0.7, val_ratio=0.15):
     x_test, y_test = x[val_end:], y[val_end:]
 
     return x_train, y_train, x_val, y_val, x_test, y_test
+
+
+def split_data_dates(
+    df, train_end_date="2019-06", val_end_date="2022-07", test_end_date="2025-01"
+):
+    train_data = df[df.index < train_end_date]
+    val_data = df[(df.index >= train_end_date) & (df.index < val_end_date)]
+    test_data = df[(df.index >= val_end_date) & (df.index < test_end_date)]
+
+    return train_data, val_data, test_data
+
+
+# NaN
 
 
 def fill_nan(df):
@@ -126,3 +160,24 @@ def fill_nan(df):
         # TODO tinker with halflife
         df[col] = df[col].fillna(df[col].ewm(halflife=5, adjust=False).mean())
     return df
+
+
+def fill_quarterly_annual(df, inplace=True):
+    # Prevent inplace changes
+    if inplace:
+        df_temp = df
+    else:
+        df_temp = df.copy()
+
+    # Fill the quarterly and annual columns with the most recent non NaN entry
+    columns = [
+        "ep_quarterly",
+        "sp_quarterly",
+        "agr_quarterly",
+        "ep_annual",
+        "sp_annual",
+        "agr_annual",
+    ]
+    df_temp[columns] = df_temp[columns].ffill()
+
+    return df_temp

@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 
 
@@ -217,7 +218,10 @@ def basic_eda(
     categorical_features=[],
     hist_bins=30,
     correlation=True,
+    correlation_method="pearson",
+    correlation_mean=False,
     distribution=True,
+    distribution_cols: int = 3,
     distribution_min_max=False,
     style="ggplot",
 ):
@@ -247,7 +251,10 @@ def basic_eda(
     print(df.duplicated().sum())
 
     if correlation:
-        corr_matrix = df.corr(numeric_only=True)
+        if correlation_mean:
+            corr_matrix = mean_correlation(df)
+        else:
+            corr_matrix = df.corr(method=correlation_method, numeric_only=True)
 
         # Adjust figure size based on number of columns
         num_cols = len(corr_matrix.columns)
@@ -276,7 +283,7 @@ def basic_eda(
     if distribution:
         print("\n--- Feature Distributions ---")
         numeric_cols = df.select_dtypes(include=["number"]).columns
-        n_cols = 3
+        n_cols = distribution_cols
         n_rows = (
             len(numeric_cols) + n_cols - 1
         ) // n_cols  # ceiling of len(numeric_cols) / n_cols)
@@ -320,3 +327,43 @@ def plot_real_pred(y, y_pred, graph_title="Actual vs Predicted"):
     plt.title(graph_title)
     plt.legend()
     plt.show()
+
+
+def mean_correlation(df, correlation_methods=["pearson", "kendall", "spearman"]):
+    """
+    Calculate the mean correlation matrix across multiple methods (Pearson, Kendall, Spearman).
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The dataframe for which correlations are calculated.
+
+    correlation_methods : list of str
+        The list of correlation methods to use (default: ["pearson", "kendall", "spearman"]).
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame representing the average correlation values across methods.
+    """
+    correlation_matrices = []
+    correlation_methods = ["pearson", "kendall", "spearman"]
+
+    # Calculate correlation matrices for each method
+    for method in correlation_methods:
+        corr_matrix = df.corr(method=method, numeric_only=True)
+        correlation_matrices.append(corr_matrix)
+
+    final_dic = {}
+    for col in correlation_matrices[0].columns:
+        series0 = correlation_matrices[0][col]
+        series1 = correlation_matrices[1][col]
+        series2 = correlation_matrices[2][col]
+
+        # Calculate the mean across the three series
+        final_dic[col] = (series0 + series1 + series2) / 3
+
+    # Convert the dictionary into a DataFrame for easier visualization
+    final_df = pd.DataFrame(final_dic)
+
+    return final_df

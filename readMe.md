@@ -89,6 +89,7 @@ def calculate_zerotrade(months_sorted, vol_sum_monthly, shares_monthly, zero_tra
 
 def calculate_retvol(prices_daily):
 
+Will always be later by the window of rolling than beta since it is rolling on another rolling metric
 def calculate_idiovol(months_sorted, month_latest_week, weekly_returns, market_weekly_returns, interval=156, increment=4):
 
 def calculate_beta_betasq(months_sorted, month_latest_week, weekly_returns, market_weekly_returns, interval=156, increment=4):

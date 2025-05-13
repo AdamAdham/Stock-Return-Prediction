@@ -68,7 +68,7 @@ def create_sequences(
     # Number of sequences we can generate
     num_samples = data.shape[0] - timesteps
     if num_samples <= 0:
-        print("Number of samples less than timesteps")
+        # print("Number of samples less than timesteps")
         return None
 
     # Allocate memory for inputs and targets
@@ -425,4 +425,116 @@ def create_sequences_with_gaps(
         np.array(times),
         np.array(sequences),
         np.array(targets),
+    )
+
+
+def sequence_split(data_split, name, stock_timesteps, macro_timesteps):
+    stock_cols = [
+        "mom1m",
+        "mom12m_current",
+        "mom36m",
+        "chmom_current",
+        "maxret_current",
+        "turn",
+        "std_turn",
+        "mve_current",
+        "dolvol_current",
+        "ill",
+        "retvol",
+        "ep_quarterly",
+        "sp_quarterly",
+        "agr_quarterly",
+        "ep_annual",
+        "beta",
+        "idiovol",
+        "betasq",
+        "indmom",
+    ]
+    macro_cols = [
+        "AAA",
+        "CRSP_SPvw",
+        "b/m",
+        "corpr",
+        "csp",
+        "infl",
+        "ltr",
+        "ntis",
+        "svar",
+        "tbl",
+        "Index",
+    ]
+    static_cols = [
+        "symbol",
+        "sic_code_2",
+        "sic_industry",
+        "exchange_short_name",
+        "exchange",
+    ]
+
+    time_stock, x_stock, y_stock = [], [], []
+    time_macro, x_macro, y_macro = [], [], []
+    sic_mapped_stock = []
+
+    for symbol, group in data_split.groupby("symbol"):
+        # Stock sequence
+        stock_seq = create_sequences(
+            group[stock_cols], stock_timesteps, target_column="mom1m"
+        )
+        if stock_seq is not None:
+            t_s, x_s, y_s = stock_seq
+            time_stock.append(t_s)
+            x_stock.append(x_s)
+            y_stock.append(y_s)
+            sic_code = group["sic_code_2_mapped"].iloc[0]
+            sic_mapped_stock.append([sic_code] * y_s.shape[0])
+
+        # Macro sequence (applied on full dataframe, not grouped)
+        macro_seq = create_sequences(group[macro_cols], macro_timesteps)
+        if macro_seq is not None:
+            t_m, x_m, y_m = macro_seq
+            time_macro.append(t_m)
+            x_macro.append(x_m)
+
+    # Convert to numpy arrays if not empty
+    x_stock = np.concatenate(x_stock, axis=0) if x_stock else None
+    y_stock = np.concatenate(y_stock, axis=0) if y_stock else None
+    sic_mapped_stock = (
+        np.concatenate(sic_mapped_stock, axis=0) if sic_mapped_stock else None
+    )
+    x_macro = np.concatenate(x_macro, axis=0) if x_macro else None
+
+    # Print shapes
+    print(f"Shape of x_{name}_stock:", np.shape(x_stock))
+    print(f"Shape of y_{name}_stock:", np.shape(y_stock))
+    print(f"Shape of x_{name}_macro:", np.shape(x_macro))
+
+    return x_stock, sic_mapped_stock, x_macro, y_stock
+
+
+def create_sequences_train_val_test(
+    train_data, val_data, test_data, stock_timesteps=12, macro_timesteps=12
+):
+    x_train_stock, train_sic_mapped_stock, x_train_macro, y_train_stock = (
+        sequence_split(train_data, "train", stock_timesteps, macro_timesteps)
+    )
+    x_val_stock, val_sic_mapped_stock, x_val_macro, y_val_stock = sequence_split(
+        val_data, "val", stock_timesteps, macro_timesteps
+    )
+    x_test_stock, test_sic_mapped_stock, x_test_macro, y_test_stock = sequence_split(
+        test_data, "test", stock_timesteps, macro_timesteps
+    )
+
+    return (
+        x_train_stock,
+        train_sic_mapped_stock,
+        x_train_macro,
+        y_train_stock,
+        x_val_stock,
+        val_sic_mapped_stock,
+        x_val_macro,
+        y_val_stock,
+        x_test_stock,
+        test_sic_mapped_stock,
+        x_test_macro,
+        y_test_stock,
     )

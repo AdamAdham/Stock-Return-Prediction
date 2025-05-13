@@ -25,7 +25,7 @@ def json_dataframe_all(
         try:
             # Convert json to dataframe and save it to csv
             df = json_to_dataframe(stock)
-            path_output = output_directory / f"{stock["symbol"]}.csv"
+            path_output = output_directory / f"{stock['symbol']}.csv"
             df.to_csv(path_output)
             print(f"Stock {stock['symbol']} , Index {i} saved")
             success.append(stock["symbol"])

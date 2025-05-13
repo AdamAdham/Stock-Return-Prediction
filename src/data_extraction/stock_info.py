@@ -328,3 +328,71 @@ def add_info(
             print(f"Error fetching data for {stock['symbol']}: {e}")
             failed.append(stock["symbol"])
             continue
+
+
+def add_market_cap_eod(stock, api_client):
+    start_date = "1700-12-12"  # A random old date
+    end_date = datetime.today().date()
+
+    symbol = stock["symbol"]
+    stock_final = stock.copy()
+
+    eod = api_client.get_eod(symbol, start_date=start_date, end_date=end_date)
+    stock_final["eod"] = remove_duplicates_and_sort_by_date(eod)
+
+    start_date = end_date - timedelta(
+        days=19 * 365
+    )  # Getting the date 19 years ago (since 19*262<5000) where 262: max weekdays in year, 5000: max number of values in a request (FMP)
+
+    market_cap = api_client.get_market_cap(
+        symbol, start_date=start_date + timedelta(days=1), end_date=end_date
+    )
+
+    # If market cap data not available, assign market cap and outstanding shares None since outstanding shares dependant on market cap
+    if len(market_cap) == 0:
+        stock_final["market_cap"] = None
+        stock_final["outstanding_shares"] = None
+        return stock_final
+
+    window = timedelta(days=10)
+    # Loop till all available market caps are retrieved
+    while True:
+        last_date_in_market_cap = datetime.strptime(
+            market_cap[-1]["date"], "%Y-%m-%d"
+        ).date()
+
+        # If the earliest date in market_cap is within the window of start_date, request more data. Holidays and weekends did not allow direct equation
+        if start_date <= last_date_in_market_cap <= start_date + window:
+
+            # End date to be the earliest date of the previous response + 1 day to prevent dublicates
+            end_date = datetime.strptime(
+                market_cap[-1]["date"], "%Y-%m-%d"
+            ).date() + timedelta(days=1)
+            start_date = end_date - timedelta(days=19 * 365)
+
+            market_cap_extended = api_client.get_market_cap(
+                symbol, start_date=start_date, end_date=end_date
+            )
+
+            if market_cap_extended:  # Ensure there is new data
+                market_cap += market_cap_extended
+            else:
+                break  # Exit loop if no new data is returned
+        else:
+            break  # Exit loop if there is no match with the last date in market_cap, then no more data to retrieve
+
+    # print(f"{symbol} Market Cap Duplicates") TODO
+    stock_final["market_cap"] = remove_duplicates_and_sort_by_date(market_cap)
+
+    # EOD sometimes has one more later date, so we just remove it
+    if stock_final["market_cap"][0]["date"] != stock_final["eod"][0]["date"]:
+        stock_final["eod"] = stock_final["eod"][1:]
+
+    # Calculate outstanding shares since FMP only supplies till 2021
+    # using daily market cap / closing price
+    # Round to nearest integer
+    stock_final["outstanding_shares"] = {
+        cap["date"]: int(round(cap["marketCap"] / price["price"], 0))
+        for cap, price in zip(stock_final["market_cap"], stock_final["eod"])
+    }
+    return stock_final
