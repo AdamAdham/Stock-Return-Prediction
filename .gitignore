@@ -9,6 +9,7 @@ data/tests/*
 data/tests/processed/*
 .env
 venv
-notebooks/*
+# notebooks/*
+notebooks/model/dataset/*
 cspell.json
 **/__pycache__/
