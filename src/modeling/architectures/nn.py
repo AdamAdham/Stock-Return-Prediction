@@ -1,6 +1,8 @@
 from tensorflow.keras import Input, Sequential
 from tensorflow.keras.layers import Dense, Dropout, LayerNormalization
 
+from src.modeling.layers.mc_dropout import MCDropout
+
 
 def build_nn(
     input_shape,
