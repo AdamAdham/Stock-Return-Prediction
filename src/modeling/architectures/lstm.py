@@ -21,6 +21,7 @@ def build_lstm(
     model_name: str = None,
     mc_dropout: bool = False,
     dropout_rate: float = 0.0,
+    use_layernorm=False,
     output_units: int = 1,
     output_activation: str = "linear",
     show_summary: bool = True,
@@ -68,7 +69,8 @@ def build_lstm(
     for i in range(hidden_layers):
         return_seq = True if i < hidden_layers - 1 else return_sequences
         model.add(LSTM(units[i], activations[i], return_sequences=return_seq))
-        model.add(LayerNormalization())
+        if use_layernorm:
+            model.add(LayerNormalization())
         if dropout_rate > 0:
             if mc_dropout:
                 model.add(MCDropout(dropout_rate, name=f"mc_dropout_{i}"))
@@ -86,42 +88,6 @@ def build_lstm(
     return model
 
 
-from tensorflow.keras.layers import (
-    Input,
-    LSTM,
-    MultiHeadAttention,
-    Dropout,
-    LayerNormalization,
-    Dense,
-    GlobalAveragePooling1D,
-)
-from tensorflow.keras.models import Model
-
-
-# Optional: Monte Carlo Dropout
-class MCDropout(Dropout):
-    def call(self, inputs, training=None):
-        return super().call(inputs, training=True)
-
-
-from tensorflow.keras.layers import (
-    Input,
-    LSTM,
-    MultiHeadAttention,
-    Dropout,
-    LayerNormalization,
-    Dense,
-    GlobalAveragePooling1D,
-    Flatten,
-)
-from tensorflow.keras.models import Model
-
-
-class MCDropout(Dropout):
-    def call(self, inputs, training=None):
-        return super().call(inputs, training=True)
-
-
 def build_lstm_attention(
     input_shape,
     num_blocks=2,
@@ -132,8 +98,8 @@ def build_lstm_attention(
     attention_dropout=0,
     mc_dropout=False,
     dropout_rate=0.0,
-    use_residual=True,
-    use_layernorm=True,
+    use_residual=False,
+    use_layernorm=False,
     use_pooling=True,
     pooling_layer=GlobalAveragePooling1D,
     return_sequences=False,
@@ -142,6 +108,7 @@ def build_lstm_attention(
     optimizer="adam",
     loss="mse",
     show_summary=False,
+    model_name=None,
 ):
     """
     Builds a model with repeated (LSTM → Attention) blocks.
@@ -199,7 +166,7 @@ def build_lstm_attention(
             x = Flatten()(x)
         outputs = Dense(output_units, activation=output_activation)(x)
 
-    model = Model(inputs=inputs, outputs=outputs)
+    model = Model(inputs=inputs, outputs=outputs, name=model_name)
     model.compile(optimizer=optimizer, loss=loss)
 
     if show_summary:

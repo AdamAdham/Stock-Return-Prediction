@@ -1,30 +1,25 @@
 import tensorflow as tf
-from tensorflow.keras.layers import Embedding
-
-from src.modeling.architectures.model_builder import model_builder
 
 
 class MixtureOfExpertsAdapt(tf.keras.Model):
     def __init__(
         self,
-        input_info,
-        experts_info,
+        experts,
         stock_temporal,
         macro_temporal,
         gate,
-        use_emb: bool = True,
+        embedding=None,
         use_stock_classification: bool = False,
         use_uncertainty: bool = False,
-        emb_output: int = 64,
+        **kwargs
     ):
-        super().__init__()
+        super().__init__(**kwargs)
 
         # Definitions
-        self.use_emb = use_emb
+        self.experts = experts
+        self.embedding = embedding
         self.use_stock_classification = use_stock_classification
         self.use_uncertainty = use_uncertainty
-
-        sic_codes = input_info["sic_codes"]
 
         # Modeling
 
@@ -34,12 +29,8 @@ class MixtureOfExpertsAdapt(tf.keras.Model):
         # Macro Temporal
         self.macro_temporal = macro_temporal
 
-        # Embedding
-        if self.use_emb:
-            self.embed = Embedding(input_dim=sic_codes, output_dim=emb_output)
-
         # Experts
-        self.experts = [expert_info for expert_info in experts_info]
+        self.experts = [expert for expert in experts]
 
         # Gating Mechanism
         self.gate = gate
@@ -84,17 +75,20 @@ class MixtureOfExpertsAdapt(tf.keras.Model):
 
         # Embedding input shape = (batch_size, input_length)
         # Embedding output shape = (batch_size, input_length, output_dim)
-        if self.use_emb:
-            embed_outputs = self.embed(sic_2)
+        if self.embedding is not None:
+            embed_outputs = self.embedding(sic_2)
 
         gating_input = embed_outputs
 
         # Gating Input
-        if self.use_emb & self.use_stock_classification:
+        if self.embedding is not None and self.use_stock_classification:
+            print("1")
             gating_input = tf.concat([embed_outputs, stock_classification], axis=0)
-        elif self.use_emb:
+        elif self.embedding is not None:
+            print("2")
             gating_input = embed_outputs
         else:
+            print("3")
             gating_input = stock_classification
 
         # Gating
@@ -119,3 +113,24 @@ class MixtureOfExpertsAdapt(tf.keras.Model):
             return weighted_output, gating_weights
 
         return weighted_output
+
+    # def get_config(self):
+    #     config = super().get_config()
+    #     config.update(
+    #         {
+    #             "input_info": self.input_info,
+    #             "experts_info": self.experts_info,
+    #             "stock_temporal": self.stock_temporal,
+    #             "macro_temporal": self.macro_temporal,
+    #             "gate": self.gate,
+    #             "use_emb": self.use_emb,
+    #             "use_stock_classification": self.use_stock_classification,
+    #             "use_uncertainty": self.use_uncertainty,
+    #             "emb_output": self.emb_output,
+    #         }
+    #     )
+    #     return config
+
+    # @classmethod
+    # def from_config(cls, config):
+    #     return cls(**config)

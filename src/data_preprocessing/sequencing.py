@@ -452,7 +452,7 @@ def sequence_split(data_split, name, stock_timesteps, macro_timesteps):
     ]
     macro_cols = [
         "AAA",
-        "CRSP_SPvw",
+        "SPvw",
         "b/m",
         "corpr",
         "csp",

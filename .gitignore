@@ -7,9 +7,11 @@ data/stocks/dataframes_new/*
 data/stocks/old
 data/tests/*
 data/tests/processed/*
+data/*
+model_results
 .env
 venv
-# notebooks/*
+notebooks
 notebooks/model/dataset/*
 cspell.json
 **/__pycache__/

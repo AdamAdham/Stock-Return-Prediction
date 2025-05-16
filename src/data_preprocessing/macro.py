@@ -22,7 +22,11 @@ def get_macro_data() -> pd.DataFrame:
     macro = macro[macro.index >= "1962-01-02"]
 
     # Fill NaN values from "2003-01" with the average
-    macro["csp"] = macro["csp"].fillna(macro["csp"].mean())
+    macro["csp"] = macro["csp"].fillna(
+        macro["csp"].ewm(halflife=5, adjust=False).mean()
+    )
+
+    macro.rename(columns={"CRSP_SPvwx": "SPvwx", "CRSP_SPvw": "SPvw"}, inplace=True)
 
     return macro
 

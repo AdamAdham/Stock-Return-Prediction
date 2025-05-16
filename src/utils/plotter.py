@@ -6,8 +6,6 @@ import seaborn as sns
 
 import matplotlib.pyplot as plt
 
-#
-
 
 def plot_model_history(
     history, metrics=["loss", "mean_absolute_error"], style="ggplot"
@@ -23,7 +21,7 @@ def plot_model_history(
         - A plot for each metric specified in the metrics list.
     """
     plt.style.use(style)
-
+    print(history)
     for metric in metrics:
         if metric in history.history:  # Check if the metric is available in history
             plt.figure(figsize=(8, 5))
