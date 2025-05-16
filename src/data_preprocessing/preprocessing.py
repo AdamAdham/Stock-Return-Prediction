@@ -120,10 +120,15 @@ def split_data_dates(
     df, train_end_date="2019-06", val_end_date="2022-07", test_end_date="2025-01"
 ):
     train_data = df[df.index < train_end_date]
-    val_data = df[(df.index >= train_end_date) & (df.index < val_end_date)]
-    test_data = df[(df.index >= val_end_date) & (df.index < test_end_date)]
+    train_time = train_data.index
 
-    return train_data, val_data, test_data
+    val_data = df[(df.index >= train_end_date) & (df.index < val_end_date)]
+    val_time = val_data.index
+
+    test_data = df[(df.index >= val_end_date) & (df.index < test_end_date)]
+    test_time = test_data.index
+
+    return train_time, train_data, val_time, val_data, test_time, test_data
 
 
 # NaN

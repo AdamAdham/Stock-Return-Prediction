@@ -28,6 +28,9 @@ EDA_DIR = DATA_DIR / "eda"
 # Metadata
 METADATA_DIR = DATA_DIR / "metadata"
 
+# Model Results
+MODEL_RESULTS_DIR = PROJECT_ROOT / "model_results"
+
 # Macroeconomic data
 MACRO_DIR = DATA_DIR / "macroeconomics"
 MACRO_DATA = MACRO_DIR / "macroeconomics_data.csv"

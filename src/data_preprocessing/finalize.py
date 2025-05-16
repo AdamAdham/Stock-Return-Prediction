@@ -30,19 +30,29 @@ def get_final_dataset(
     )
     raw_df.drop(["sp_annual", "agr_annual"], inplace=True, axis=1)
 
+    raw_df = raw_df.rename(
+        columns={
+            "mom12m_current": "mom12m",
+            "chmom_current": "chmom",
+            "maxret_current": "maxret",
+            "mve_current": "mve",
+            "dolvol_current": "dolvol",
+        }
+    )
+
     macro = get_macro_data()
     macro_corr, remove_cols = remove_highly_correlated_features(macro)
 
     numeric_stock_cols = [
         "mom1m",
-        "mom12m_current",
+        "mom12m",
         "mom36m",
-        "chmom_current",
-        "maxret_current",
+        "chmom",
+        "maxret",
         "turn",
         "std_turn",
-        "mve_current",
-        "dolvol_current",
+        "mve",
+        "dolvol",
         "ill",
         "retvol",
         "ep_quarterly",
@@ -75,7 +85,7 @@ def get_final_dataset(
         df_sample = df[df["symbol"].isin(df_sample_symbols)]
     else:
         df_sample = df
-    train_data, val_data, test_data = split_data_dates(
+    train_time, train_data, val_time, val_data, test_time, test_data = split_data_dates(
         df_sample,
         train_end_date=train_end_date,
         val_end_date=val_end_date,
@@ -115,14 +125,17 @@ def get_final_dataset(
     )
 
     return (
+        train_time,
         x_train_stock,
         train_sic_mapped_stock,
         x_train_macro,
         y_train_stock,
+        val_time,
         x_val_stock,
         val_sic_mapped_stock,
         x_val_macro,
         y_val_stock,
+        test_time,
         x_test_stock,
         test_sic_mapped_stock,
         x_test_macro,

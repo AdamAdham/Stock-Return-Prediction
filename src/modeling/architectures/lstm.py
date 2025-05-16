@@ -18,12 +18,12 @@ def build_lstm(
     units: list,
     activations: list,
     return_sequences: bool,
-    model_name: str = None,
     mc_dropout: bool = False,
     dropout_rate: float = 0.0,
     use_layernorm=False,
     output_units: int = 1,
     output_activation: str = "linear",
+    model_name: str = None,
     show_summary: bool = True,
 ):
     """
@@ -91,8 +91,8 @@ def build_lstm(
 def build_lstm_attention(
     input_shape,
     num_blocks=2,
-    lstm_units=64,
-    lstm_activations="relu",
+    units=64,
+    activations="relu",
     num_heads=4,
     key_dim=None,
     attention_dropout=0,
@@ -107,8 +107,8 @@ def build_lstm_attention(
     output_activation="linear",
     optimizer="adam",
     loss="mse",
-    show_summary=False,
     model_name=None,
+    show_summary=False,
 ):
     """
     Builds a model with repeated (LSTM → Attention) blocks.
@@ -121,10 +121,10 @@ def build_lstm_attention(
         print(f"{name} was not a list")
         return [x] * num_blocks
 
-    lstm_units = ensure_list(lstm_units, "lstm_units")
-    lstm_activations = ensure_list(lstm_activations, "lstm_activations")
+    units = ensure_list(units, "units")
+    activations = ensure_list(activations, "activations")
     num_heads = ensure_list(num_heads, "num_heads")
-    key_dim = ensure_list(key_dim if key_dim is not None else lstm_units, "key_dim")
+    key_dim = ensure_list(key_dim if key_dim is not None else units, "key_dim")
     attention_dropout = ensure_list(attention_dropout, "attention_dropout")
     dropout_rate = ensure_list(dropout_rate, "dropout_rate")
     use_residual = ensure_list(use_residual, "use_residual")
@@ -134,9 +134,7 @@ def build_lstm_attention(
     x = inputs
 
     for i in range(num_blocks):
-        x_lstm = LSTM(
-            lstm_units[i], return_sequences=True, activation=lstm_activations[i]
-        )(x)
+        x_lstm = LSTM(units[i], return_sequences=True, activation=activations[i])(x)
 
         x_attn = MultiHeadAttention(
             num_heads=num_heads[i],
