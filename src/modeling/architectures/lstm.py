@@ -8,6 +8,7 @@ from tensorflow.keras.layers import (
     GlobalAveragePooling1D,
     Flatten,
 )
+from tensorflow.keras.optimizers import Adam
 
 from src.modeling.layers.mc_dropout import MCDropout
 
@@ -105,7 +106,8 @@ def build_lstm_attention(
     return_sequences=False,
     output_units=1,
     output_activation="linear",
-    optimizer="adam",
+    optimizer=Adam,
+    learning_rate=1e-3,
     loss="mse",
     model_name=None,
     show_summary=False,
@@ -124,7 +126,7 @@ def build_lstm_attention(
     units = ensure_list(units, "units")
     activations = ensure_list(activations, "activations")
     num_heads = ensure_list(num_heads, "num_heads")
-    key_dim = ensure_list(key_dim if key_dim is not None else units, "key_dim")
+    key_dim = ensure_list(key_dim, "key_dim") if key_dim is not None else units
     attention_dropout = ensure_list(attention_dropout, "attention_dropout")
     dropout_rate = ensure_list(dropout_rate, "dropout_rate")
     use_residual = ensure_list(use_residual, "use_residual")
@@ -165,7 +167,7 @@ def build_lstm_attention(
         outputs = Dense(output_units, activation=output_activation)(x)
 
     model = Model(inputs=inputs, outputs=outputs, name=model_name)
-    model.compile(optimizer=optimizer, loss=loss)
+    model.compile(optimizer=optimizer(learning_rate=learning_rate), loss=loss)
 
     if show_summary:
         model.summary()
