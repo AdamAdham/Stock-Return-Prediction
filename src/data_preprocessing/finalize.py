@@ -15,6 +15,72 @@ from src.utils.information import get_sic_mapping
 from sklearn.preprocessing import StandardScaler
 
 
+def get_cross_sectional_data(
+    stock_path,
+    macro_path,
+    train_end_date="2019-06",
+    val_end_date="2022-07",
+    test_end_date="2025-01",
+    scaler_class=StandardScaler,
+):
+    numeric_stock_cols = [
+        "mom1m",
+        "mom12m",
+        "mom36m",
+        "chmom",
+        "maxret",
+        "turn",
+        "std_turn",
+        "mve",
+        "dolvol",
+        "ill",
+        "retvol",
+        "ep_quarterly",
+        "sp_quarterly",
+        "agr_quarterly",
+        "ep_annual",
+        "beta",
+        "betasq",
+        "idiovol",
+        "indmom",
+    ]
+
+    stocks = pd.read_csv(stock_path, index_col=0)
+    macro = pd.read_csv(macro_path, index_col=0)
+
+    macro_final, _, _ = scale_df(
+        macro, "Index", train_end_date=train_end_date, scaler_class=scaler_class
+    )
+
+    df = stocks.merge(macro_final, on="month", how="left")
+
+    train_time, train_data, val_time, val_data, test_time, test_data = split_data_dates(
+        df,
+        train_end_date=train_end_date,
+        val_end_date=val_end_date,
+        test_end_date=test_end_date,
+    )
+
+    train_scaled, val_scaled, test_scaled, scaler_x, scaler_y = scale_train_val_test(
+        train_data[numeric_stock_cols],
+        val_data[numeric_stock_cols],
+        test_data[numeric_stock_cols],
+        scaler_class=scaler_class,
+        target_col="mom1m",
+    )
+
+    return (
+        train_time,
+        train_scaled,
+        val_time,
+        val_scaled,
+        test_time,
+        test_scaled,
+        scaler_x,
+        scaler_y,
+    )
+
+
 def get_final_dataset(
     train_end_date="2019-06",
     val_end_date="2022-07",

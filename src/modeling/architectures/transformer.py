@@ -57,8 +57,11 @@ def get_sinusoidal_encoding(seq_len, d_model):
 def build_transformer(
     input_shape,
     num_heads=4,
-    ff_dim=128,
-    num_transformer_blocks=2,
+    num_blocks=1,
+    model_dim=512,
+    dense_interm_dim=1024,
+    use_layernorm=True,
+    use_residual=True,
     mc_dropout: bool = False,
     dropout_rate=0.0,
     positional_encoding=True,
@@ -67,28 +70,26 @@ def build_transformer(
     return_sequences=False,
     optimizer="adam",
     loss="mse",
+    show_summary=False,
 ):
     inputs = tf.keras.Input(shape=input_shape)  # shape = (timesteps, features)
     x = inputs
-    print("x")
-    print(x)
-    print("-" * 100)
+
+    x = Dense(model_dim)(x)
 
     # Optional positional encoding
     if positional_encoding:
         # Creates a 1D tensor of position indices: e.g., [0, 1, ..., 11] if input_shape=(12, 19)
         if sinusoidal_encoding:
-            pos_embedding = get_sinusoidal_encoding(
-                input_shape[0], d_model=input_shape[1]
-            )
+            pos_embedding = get_sinusoidal_encoding(input_shape[0], d_model=model_dim)
             pos_embedding = tf.expand_dims(
                 pos_embedding, axis=0
             )  # shape: (1, timesteps, d_model)
         else:
             pos = tf.range(start=0, limit=input_shape[0], delta=1)
 
-            # Learnable embedding: each position gets mapped to a vector of size input_shape[1] (e.g., 19)
-            pos_embedding = Embedding(input_dim=1000, output_dim=input_shape[1])(
+            # Learnable embedding: each position gets mapped to a vector of size model_dim (e.g., 19)
+            pos_embedding = Embedding(input_dim=input_shape[0], output_dim=model_dim)(
                 pos
             )  # shape: (12, 19)
             # Expand dims for broadcasting consistency across batches (optional, but clearer)
@@ -97,29 +98,52 @@ def build_transformer(
         print(pos_embedding)
         x = x + pos_embedding
 
+    prev_output = x
     # Transformer blocks
-    for _ in range(num_transformer_blocks):
-        attn_output = MultiHeadAttention(num_heads=num_heads, key_dim=input_shape[1])(
-            x, x
-        )
-        attn_output = Dropout(dropout_rate)(attn_output)
-        x = LayerNormalization()(x + attn_output)
+    for _ in range(num_blocks):
+        key_dim = model_dim // num_heads
+        output = MultiHeadAttention(num_heads=num_heads, key_dim=key_dim)(x, x)
 
-        ffn = Dense(ff_dim, activation="relu")(x)
-        ffn = Dense(input_shape[1])(ffn)
+        if use_residual:
+            output = output + prev_output
+
+        if use_layernorm:
+            output = LayerNormalization()(output)
+
         if dropout_rate > 0:
             if mc_dropout:
-                ffn = MCDropout(dropout_rate)(ffn)
+                output = MCDropout(dropout_rate)(output)
             else:
-                ffn = Dropout(dropout_rate)(ffn)
-        x = LayerNormalization()(x + ffn)
+                output = Dropout(dropout_rate)(output)
+
+        ffn_output = Dense(dense_interm_dim)(output)
+        ffn_output = Dense(model_dim)(ffn_output)
+
+        if use_residual:
+            output = output + ffn_output
+        else:
+            output = ffn_output
+
+        if use_layernorm:
+            output = LayerNormalization()(output)
+
+        if dropout_rate > 0:
+            if mc_dropout:
+                output = MCDropout(dropout_rate)(output)
+            else:
+                output = Dropout(dropout_rate)(output)
+
+        prev_output = output
 
     if not return_sequences:
-        x = GlobalAveragePooling1D()(x)
+        output = GlobalAveragePooling1D()(output)
 
-    outputs = Dense(output_dim)(x)
+    output = Dense(output_dim)(output)
 
-    model = Model(inputs, outputs, name="transformer_forecaster")
+    model = Model(inputs, output, name="transformer_forecaster")
     model.compile(optimizer=optimizer, loss=loss)
+
+    if show_summary:
+        model.summary()
 
     return model
