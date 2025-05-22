@@ -22,6 +22,7 @@ def build_lstm(
     mc_dropout: bool = False,
     dropout_rate: float = 0.0,
     use_layernorm=False,
+    regularizer=None,
     output_units: int = 1,
     output_activation: str = "linear",
     model_name: str = None,
@@ -69,7 +70,15 @@ def build_lstm(
 
     for i in range(hidden_layers):
         return_seq = True if i < hidden_layers - 1 else return_sequences
-        model.add(LSTM(units[i], activations[i], return_sequences=return_seq))
+        model.add(
+            LSTM(
+                units[i],
+                activations[i],
+                return_sequences=return_seq,
+                kernel_regularizer=regularizer,
+                recurrent_regularizer=regularizer,
+            )
+        )
         if use_layernorm:
             model.add(LayerNormalization())
         if dropout_rate > 0:
@@ -79,7 +88,13 @@ def build_lstm(
                 model.add(Dropout(dropout_rate))
 
     if not return_sequences:
-        model.add(Dense(output_units, activation=output_activation))
+        model.add(
+            Dense(
+                output_units,
+                activation=output_activation,
+                kernel_regularizer=regularizer,
+            )
+        )
 
     model.compile(optimizer="adam", loss="mse")
 
@@ -101,6 +116,7 @@ def build_lstm_attention(
     dropout_rate=0.0,
     use_residual=False,
     use_layernorm=False,
+    regularizer=None,
     use_pooling=True,
     pooling_layer=GlobalAveragePooling1D,
     return_sequences=False,
@@ -136,12 +152,19 @@ def build_lstm_attention(
     x = inputs
 
     for i in range(num_blocks):
-        x_lstm = LSTM(units[i], return_sequences=True, activation=activations[i])(x)
+        x_lstm = LSTM(
+            units[i],
+            return_sequences=True,
+            activation=activations[i],
+            kernel_regularizer=regularizer,
+            recurrent_regularizer=regularizer,
+        )(x)
 
         x_attn = MultiHeadAttention(
             num_heads=num_heads[i],
             key_dim=key_dim[i],
             dropout=attention_dropout[i],
+            kernel_regularizer=regularizer,
         )(x_lstm, x_lstm)
 
         if mc_dropout and dropout_rate[i] > 0.0:
@@ -164,7 +187,9 @@ def build_lstm_attention(
             x = pooling_layer()(x)
         else:
             x = Flatten()(x)
-        outputs = Dense(output_units, activation=output_activation)(x)
+        outputs = Dense(
+            output_units, activation=output_activation, kernel_regularizer=regularizer
+        )(x)
 
     model = Model(inputs=inputs, outputs=outputs, name=model_name)
     model.compile(optimizer=optimizer(learning_rate=learning_rate), loss=loss)

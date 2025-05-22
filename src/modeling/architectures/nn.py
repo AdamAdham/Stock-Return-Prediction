@@ -11,6 +11,7 @@ def build_nn(
     use_layernorm: bool = False,
     mc_dropout: bool = False,
     dropout_rate: float = 0.0,
+    regularizer=None,
     output_units: int = 1,
     output_activation: str = "linear",
     optimizer="adam",
@@ -65,7 +66,14 @@ def build_nn(
     model.add(Input(shape=input_shape))
 
     for i in range(len(units)):
-        model.add(Dense(units[i], activation=activations[i], name=f"dense_{i}"))
+        model.add(
+            Dense(
+                units[i],
+                activation=activations[i],
+                name=f"dense_{i}",
+                kernel_regularizer=regularizer,
+            )
+        )
         if use_layernorm:
             model.add(LayerNormalization())
         if dropout_rate > 0:
@@ -74,7 +82,14 @@ def build_nn(
             else:
                 model.add(Dropout(dropout_rate, name=f"dropout_{i}"))
 
-    model.add(Dense(output_units, activation=output_activation, name="output"))
+    model.add(
+        Dense(
+            output_units,
+            activation=output_activation,
+            name="output",
+            kernel_regularizer=regularizer,
+        )
+    )
 
     model.compile(optimizer=optimizer, loss=loss)
 
