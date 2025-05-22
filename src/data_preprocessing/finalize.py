@@ -69,13 +69,17 @@ def get_cross_sectional_data(
         target_col="mom1m",
     )
 
+    train_data.loc[:, numeric_stock_cols] = train_scaled[numeric_stock_cols].values
+    val_data.loc[:, numeric_stock_cols] = val_scaled[numeric_stock_cols].values
+    test_data.loc[:, numeric_stock_cols] = test_scaled[numeric_stock_cols].values
+
     return (
         train_time,
-        train_scaled,
+        train_data,
         val_time,
-        val_scaled,
+        val_data,
         test_time,
-        test_scaled,
+        test_data,
         scaler_x,
         scaler_y,
     )
