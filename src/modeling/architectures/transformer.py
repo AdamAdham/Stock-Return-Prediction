@@ -7,6 +7,7 @@ from tensorflow.keras.layers import (
     MultiHeadAttention,
     LayerNormalization,
     GlobalAveragePooling1D,
+    Flatten,
 )
 import numpy as np
 
@@ -64,6 +65,9 @@ def build_transformer(
     use_residual=True,
     mc_dropout: bool = False,
     dropout_rate=0.0,
+    regularizer=None,
+    use_pooling=True,
+    pooling_layer=GlobalAveragePooling1D,
     positional_encoding=True,
     sinusoidal_encoding: bool = True,
     output_dim=1,
@@ -75,7 +79,7 @@ def build_transformer(
     inputs = tf.keras.Input(shape=input_shape)  # shape = (timesteps, features)
     x = inputs
 
-    x = Dense(model_dim)(x)
+    x = Dense(model_dim, kernel_regularizer=regularizer)(x)
 
     # Optional positional encoding
     if positional_encoding:
@@ -102,7 +106,9 @@ def build_transformer(
     # Transformer blocks
     for _ in range(num_blocks):
         key_dim = model_dim // num_heads
-        output = MultiHeadAttention(num_heads=num_heads, key_dim=key_dim)(x, x)
+        output = MultiHeadAttention(
+            num_heads=num_heads, key_dim=key_dim, kernel_regularizer=regularizer
+        )(x, x)
 
         if use_residual:
             output = output + prev_output
@@ -136,9 +142,14 @@ def build_transformer(
         prev_output = output
 
     if not return_sequences:
-        output = GlobalAveragePooling1D()(output)
+        if use_pooling:
+            output = pooling_layer()(output)
+        else:
+            output = Flatten()(output)
 
-    output = Dense(output_dim)(output)
+        output = Dense(output_dim, activation="linear", kernel_regularizer=regularizer)(
+            output
+        )
 
     model = Model(inputs, output, name="transformer_forecaster")
     model.compile(optimizer=optimizer, loss=loss)

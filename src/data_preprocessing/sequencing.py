@@ -428,7 +428,9 @@ def create_sequences_with_gaps(
     )
 
 
-def sequence_split(data_split, name, stock_timesteps, macro_timesteps):
+def sequence_split(
+    data_split, name, stock_timesteps, macro_timesteps, target_column="mom1m"
+):
     stock_cols = [
         "mom1m",
         "mom12m",
@@ -478,7 +480,7 @@ def sequence_split(data_split, name, stock_timesteps, macro_timesteps):
     for symbol, group in data_split.groupby("symbol"):
         # Stock sequence
         stock_seq = create_sequences(
-            group[stock_cols], stock_timesteps, target_column="mom1m"
+            group[stock_cols], stock_timesteps, target_column=target_column
         )
         if stock_seq is not None:
             t_s, x_s, y_s = stock_seq
@@ -512,16 +514,27 @@ def sequence_split(data_split, name, stock_timesteps, macro_timesteps):
 
 
 def create_sequences_train_val_test(
-    train_data, val_data, test_data, stock_timesteps=12, macro_timesteps=12
+    train_data,
+    val_data,
+    test_data,
+    target_column="mom1m",
+    stock_timesteps=12,
+    macro_timesteps=12,
 ):
     x_train_stock, train_sic_mapped_stock, x_train_macro, y_train_stock = (
-        sequence_split(train_data, "train", stock_timesteps, macro_timesteps)
+        sequence_split(
+            train_data,
+            "train",
+            stock_timesteps,
+            macro_timesteps,
+            target_column=target_column,
+        )
     )
     x_val_stock, val_sic_mapped_stock, x_val_macro, y_val_stock = sequence_split(
-        val_data, "val", stock_timesteps, macro_timesteps
+        val_data, "val", stock_timesteps, macro_timesteps, target_column=target_column
     )
     x_test_stock, test_sic_mapped_stock, x_test_macro, y_test_stock = sequence_split(
-        test_data, "test", stock_timesteps, macro_timesteps
+        test_data, "test", stock_timesteps, macro_timesteps, target_column=target_column
     )
 
     return (

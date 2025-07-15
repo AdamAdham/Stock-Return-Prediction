@@ -6,6 +6,86 @@ import seaborn as sns
 
 import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import matplotlib as mpl
+
+
+def plot_real_vs_pred_all_sets(
+    y_train,
+    y_train_pred,
+    y_val,
+    y_val_pred,
+    y_test,
+    y_test_pred,
+    save_path="real_vs_pred.pdf",
+):
+    # Force disable LaTeX text rendering to avoid errors
+    mpl.rcParams["text.usetex"] = False
+
+    # Aesthetic settings
+    plt.rcParams.update(
+        {
+            "font.family": "serif",
+            "font.serif": ["Times New Roman", "DejaVu Serif"],
+            "axes.labelsize": 12,
+            "font.size": 12,
+            "legend.fontsize": 11,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
+        }
+    )
+    sns.set_style("whitegrid")
+
+    # Create figure
+    plt.figure(figsize=(6.5, 4.5))
+
+    # Plot: Predicted vs Real
+    plt.scatter(
+        y_train,
+        y_train_pred,
+        color="#1f77b4",
+        alpha=0.5,
+        label="Train",
+        edgecolor="k",
+        s=30,
+    )
+    plt.scatter(
+        y_val,
+        y_val_pred,
+        color="#2ca02c",
+        alpha=0.5,
+        label="Validation",
+        edgecolor="k",
+        s=30,
+    )
+    plt.scatter(
+        y_test,
+        y_test_pred,
+        color="#ff7f0e",
+        alpha=0.6,
+        label="Test",
+        edgecolor="k",
+        s=30,
+    )
+
+    # Plot reference line y = x
+    min_val = min(np.min(y_train), np.min(y_val), np.min(y_test))
+    max_val = max(np.max(y_train), np.max(y_val), np.max(y_test))
+    plt.plot([min_val, max_val], [min_val, max_val], "k--", linewidth=1, label="Ideal")
+
+    # Axis labels and formatting
+    plt.xlabel("Actual Value")
+    plt.ylabel("Predicted Value")
+    plt.title("Predicted vs. Actual Values Across Sets")
+    plt.legend(loc="upper left", frameon=False)
+
+    # Save
+    plt.tight_layout()
+    plt.savefig(save_path, format="pdf", dpi=300)
+    plt.show()
+
 
 def plot_model_history(
     history, metrics=["loss", "mean_absolute_error"], style="ggplot"
@@ -365,3 +445,86 @@ def mean_correlation(df, correlation_methods=["pearson", "kendall", "spearman"])
     final_df = pd.DataFrame(final_dic)
 
     return final_df
+
+
+def plot_r2_broken_axis(model_results, save_path="r2_scores_broken_axis.pdf"):
+    """
+    Plots train and validation R² scores with a broken y-axis for better visibility,
+    and shows x-axis labels between the two subplots.
+    """
+
+    plt.rcParams.update(
+        {
+            "text.usetex": False,
+            "font.family": "serif",
+            "font.serif": ["Times New Roman"],
+            "axes.labelsize": 18,
+            "font.size": 12,
+            "legend.fontsize": 11,
+            "xtick.labelsize": 16,
+            "ytick.labelsize": 16,
+        }
+    )
+
+    models = [m["model"] for m in model_results]
+    train_pos = [m["train_pos"] for m in model_results]
+    val_pos = [m["val_pos"] for m in model_results]
+    train_scores = [m["train_r2"] for m in model_results]
+    val_scores = [m["val_r2"] for m in model_results]
+
+    x = np.arange(len(models))
+    bar_width = 0.35
+
+    fig, (ax1, ax2) = plt.subplots(
+        2,
+        1,
+        figsize=(12, 6),
+    )
+
+    ax1.bar(
+        train_pos, train_scores, width=0.4, color="#ff7f0e"
+    )  # You can change width if needed
+
+    tick_offset = 0.2  # adjust this based on bar width
+    adjusted_ticks = [x + tick_offset for x in train_pos]
+
+    ax1.set_xticks(adjusted_ticks)
+    ax1.set_xticklabels(models, rotation=0, ha="center")
+
+    ax1.set_ylabel("Training $R^2$")
+    ax2.set_ylabel("Validation $R^2$")
+
+    ax2.bar(
+        val_pos, val_scores, width=0.4, color="#1f77b4"
+    )  # You can change width if needed
+
+    ax2.set_xticks([])
+
+    # Limits and spines
+    ax1.set_xlim(0.5, 5.9)
+    ax2.set_xlim(0.5, 5.9)
+
+    ax1.set_ylim(0.75, 1)
+    ax2.set_ylim(-2.3, 0)
+
+    # Diagonal break lines
+    kwargs = dict(
+        marker=[(-1, -1), (1, 1)],
+        markersize=13,
+        linestyle="none",
+        color="#707070",
+        mec="#707070",
+        mew=1,
+        clip_on=False,
+    )
+    ax1.plot([0, 1], [0, 0], transform=ax1.transAxes, **kwargs)
+    ax2.plot([0, 1], [1, 1], transform=ax2.transAxes, **kwargs)
+
+    # Title and legend
+    # fig.suptitle("R² Scores by Model (Broken Y-Axis)", fontsize=14)
+    # fig.legend(loc="upper right", bbox_to_anchor=(0.9, 0.95))
+
+    plt.tight_layout()
+    plt.subplots_adjust(hspace=0.15)
+    plt.savefig(save_path, dpi=300, format="pdf")
+    plt.show()
