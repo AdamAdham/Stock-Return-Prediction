@@ -152,8 +152,9 @@ graph TD
     U --- B
   end
 
-  G --> P[MODEL_DIR (checkpoints, artifacts)]
-  K --> Q[graphs/ (figures)]
+  %% ✅ FIXED: Removed parentheses or wrapped in quotes
+  G --> P["MODEL_DIR - checkpoints and artifacts"]
+  K --> Q["graphs/ - figures"]
 ```
 
 ## Technical Design Details
