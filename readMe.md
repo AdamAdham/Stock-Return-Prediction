@@ -566,19 +566,6 @@ TODO: Replace this section with the project's actual license if available.
 - This project was developed for exploratory modeling of stock returns. It builds on common time-series and financial feature engineering techniques.
 - See `graphs/` for saved visualizations used in exploratory data analysis.
 
----
-
-If you want, I can:
-
-- Add a `requirements.txt` generated from the current environment (if you provide it).
-- Create example notebooks demonstrating end-to-end extraction → training → evaluation.
-- Add CI badges (GitHub Actions) once you provide a workflow file or give permissions.
-
-TODOs summary
-
-- TODO: Add `requirements.txt` or `pyproject.toml` with exact dependency pins.
-- TODO: Add sample configuration files (`.env.example`, `config.example.json`).
-- TODO: Add CLI entry points or Jupyter notebooks for common workflows.
 # Run
 
 While being in the root directory, run this to have all imports
