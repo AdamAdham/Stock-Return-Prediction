@@ -29,8 +29,6 @@
 
 This repository contains a modular pipeline for stock return prediction research. It covers raw data extraction from APIs, preprocessing and sequencing time-series data, a rich set of financial feature-engineering utilities (momentum, liquidity, valuation and risk measures), and several model architectures and training utilities (LSTM, Transformer, Mixture-of-Experts, and MC Dropout layers). The codebase is structured to encourage experimentation: swap feature generators, change model architectures, or plug in new data sources with minimal changes.
 
-Audience: ML engineers and researchers working on financial time-series modeling and feature engineering.
-
 ## Key Features (detailed)
 
 Each feature description below includes what it does, how it works (implementation notes), and why it matters.
@@ -166,8 +164,6 @@ This section explains the main algorithms and workflows implemented in the codeb
 - Raw extraction outputs are stored per-source and per-ticker as tabular files (CSV/Parquet). Each time-series file uses an index or column named `date` and a `ticker` identifier where applicable.
 - The API client normalizes response payloads to pandas DataFrames with consistent column names: `open`, `high`, `low`, `close`, `volume`, `market_cap` (when available).
 
-TODO: Confirm exact output formats (CSV vs Parquet) and column names in `api_client.py` and `disk_io.py`.
-
 ### Preprocessing & sequencing pipeline
 
 Key steps:
@@ -206,7 +202,6 @@ Major feature groups (implemented in `src/feature_engineering/calculations`):
 
 Vectorization & batching: Calculations are written to operate on pandas Series/DataFrame columns and accept both single-ticker series and batched DataFrames. The generator composes feature columns into a final wide table.
 
-TODO: Add exact function signatures and expected argument shapes for each calculator (refer to code in `calculations/`).
 
 ### Modeling: architectures, training, inference
 
@@ -237,8 +232,6 @@ Inference
 Ensembling / MoE
 
 - Mixture-of-Experts implementation provides a gating network routing inputs to specialist experts. This is useful for handling heterogenous cross-sectional behavior (e.g., sector-specific dynamics).
-
-TODO: Add concrete examples of training entrypoints and sample hyperparameter configs.
 
 ### Evaluation & visualization
 
@@ -300,78 +293,6 @@ pip install torch torchvision torchaudio
 
 - Follow TensorFlow / PyTorch official docs to install GPU-enabled builds and CUDA/cuDNN matching your GPU and drivers.
 
-5. (Optional) Install dev/test extras
-
-```powershell
-pip install pytest flake8 black
-```
-
-6. Configuration
-
-- Create a config file or set environment variables as described in the Configuration section below.
-
-## Usage Examples (CLI / code snippets)
-
-Below are example usage recipes to run the major flows. Replace `TODO` with real function names if needed.
-
-- End-to-end (recommended approach: run scripted pipeline)
-
-```python
-# extract
-from src.data_extraction import main as extraction
-extraction.main()  # TODO: pass args or use a config file
-
-# preprocess
-from src.data_preprocessing import finalize
-finalize.build_datasets()  # writes processed artifacts
-
-# train
-from src.modeling.architectures import model_builder
-from src.utils import disk_io
-
-data = disk_io.load_processed('path/to/processed.npz')
-model = model_builder.build_lstm_model(input_shape=data['X_train'].shape[1:], output_dim=1)
-model.fit(data['X_train'], data['y_train'], validation_data=(data['X_val'], data['y_val']), epochs=10)
-```
-
-- Using MC Dropout for uncertainty estimates
-
-```python
-# After training a model with mc_dropout layers in the architecture
-def mc_predict(model, X, n_samples=50):
-    preds = [model.predict(X, training=True) for _ in range(n_samples)]
-    import numpy as np
-    preds = np.stack(preds, axis=0)
-    return preds.mean(axis=0), preds.std(axis=0)
-```
-
-## Configuration
-
-Key configuration files and environment variables
-
-- `src/config/api_config.py` — endpoints, rate limits, and default symbols.
-- `src/config/settings.py` — directory paths, default time windows, feature toggles, and filter thresholds.
-
-Environment variables
-
-- `FINANCE_API_KEY` — API key for data providers.
-- `DATA_DIR` — directory to store raw/processed datasets.
-- `MODEL_DIR` — directory to store model checkpoints and artifacts.
-
-Recommended structure for a local `.env` or `config.json` (example)
-
-```json
-{
-  "DATA_DIR": "./data",
-  "MODEL_DIR": "./models",
-  "API_KEY": "your_api_key_here",
-  "WINDOW_SIZE": 12,
-  "MIN_HISTORY_MONTHS": 36
-}
-```
-
-TODO: Add `config.example.json` and `.env.example` to the repository.
-
 ## Contributing
 
 Guidelines for contributors:
@@ -385,167 +306,7 @@ Code style
 
 - Follow PEP8 for Python. Use `black` and `flake8` for automated formatting and linting.
 
-## License
 
-Add a `LICENSE` file at the repository root. Suggested placeholder: MIT.
-
-## Appendix / TODOs
-
-- TODO: Pin exact dependencies into `requirements.txt` and include a `pyproject.toml` for reproducible installs.
-- TODO: Confirm which deep-learning framework (TensorFlow vs PyTorch) is the primary target and standardize across modeling code.
-- TODO: Add example notebooks which demonstrate an end-to-end run (extraction → preprocess → train → evaluate).
-- TODO: Add CI workflow and real build/test badges.
-- TODO: Provide a short developer guide showing how to add a new feature calculation and how to add/register a new model architecture.
-
----
-
-If you'd like, I can now:
-
-- Generate a `requirements.txt` with common ML packages.
-- Add a `config.example.json` and `.env.example` with suggested keys.
-- Search the code to confirm the deep learning framework used and update the README accordingly.
-# Stock Return Prediction
-
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](TODO)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)](TODO)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture Overview](#architecture-overview)
-- [Installation](#installation)
-- [Usage Examples](#usage-examples)
-- [Configuration](#configuration)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgements & References](#acknowledgements--references)
-
-## Overview
-
-Stock Return Prediction is a research-oriented codebase for extracting, preprocessing, engineering features, and modeling stock returns. The project includes tools to download financial and macroeconomic data, compute financial indicators (momentum, liquidity, ratios, risk), prepare sequences for temporal models, and train/evaluate neural architectures (LSTM, Transformer, Mixture-of-Experts) to predict future stock returns.
-
-This repository is intended for data scientists and ML engineers working on quantitative finance experiments, prototyping model architectures, and generating reproducible analysis and visualizations.
-
-## Key Features
-
-- Data extraction: API client and utilities to fetch stock and macroeconomic data (`src/data_extraction`).
-- Preprocessing pipeline: cleaning, filtering, converters, sequencing, and final dataset generation (`src/data_preprocessing`).
-- Feature engineering: prebuilt calculations for momentum, liquidity, ratios, and risk and feature generators (`src/feature_engineering`).
-- Modeling: implementations and builders for LSTM, Transformer, dense networks, MC Dropout layers and mixture-of-experts adaptations (`src/modeling`).
-- Utilities: plotting, evaluation metrics, disk I/O, and helper functions for reproducible experiments (`src/utils`).
-- Visualization: utilities to create exploratory plots and model visualizations (`graphs/` and `src/modeling/utils/visualization.py`).
-
-## Architecture Overview
-
-At a high level the repository is split into four main components:
-
-- src/data_extraction: Responsible for pulling raw data from APIs, normalizing responses and persisting raw datasets.
-- src/data_preprocessing: Cleans raw inputs, applies feature selection and transformations, sequences time series for models, and writes finalized datasets for training/validation/testing.
-- src/feature_engineering: Provides domain-specific calculations (momentum, liquidity, ratios, risk) and a generator interface to compose features used by models.
-- src/modeling: Model definitions and builders, including RNN (LSTM), Transformer, and Mixture-of-Experts utilities, plus a lightweight training/evaluation scaffold.
-
-Data flow (simplified):
-
-1. Extraction: `data_extraction` fetches and saves raw data.
-2. Preprocessing: `data_preprocessing` loads raw data, validates, cleans, and generates labeled sequences.
-3. Feature engineering: `feature_engineering` computes and injects engineered features.
-4. Modeling: `modeling` trains models on processed sequences and evaluates performance. Visuals and metrics are saved under `graphs/` and `src/utils/metrics.py`.
-
-The repository is organized to separate concerns so components can be swapped (different data sources, feature sets, or model architectures).
-
-## Installation
-
-These instructions assume a Windows environment (PowerShell) and Python 3.8+.
-
-1. Clone the repository
-
-   git clone https://github.com/AdamAdham/Stock-Return-Prediction.git
-   cd Stock-Return-Prediction
-
-2. Create and activate a virtual environment
-
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-
-3. Install dependencies
-
-   TODO: Add a requirements.txt or pyproject.toml listing dependencies (e.g., pandas, numpy, tensorflow/torch, scikit-learn, matplotlib).
-
-   Example (temporary):
-
-   pip install pandas numpy scikit-learn matplotlib seaborn
-
-   If you plan to use GPU-accelerated training, install the appropriate TensorFlow or PyTorch wheel and CUDA drivers per their documentation.
-
-4. (Optional) Setup API credentials
-
-   See the Configuration section below for environment variables and config files.
-
-5. Run a quick smoke test
-
-   python -c "import src.data_extraction.api_client as c; print('module import OK')"
-
-## Usage Examples
-
-Below are common usage patterns for the main flows. These are examples — refer to the module docstrings and TODOs for more specifics.
-
-- Extract data (example)
-
-```python
-from src.data_extraction import main as extraction
-
-# Runs the extraction pipeline. Accepts arguments in the module or via configuration.
-extraction.main()
-```
-
-- Preprocess and generate datasets
-
-```python
-from src.data_preprocessing import finalize
-
-# Produce training/validation/test datasets
-finalize.build_datasets()
-```
-
-- Train a model (example using a model builder)
-
-```python
-from src.modeling.architectures import model_builder
-
-model = model_builder.build_lstm_model(input_shape=(128, 20), output_dim=1)
-model.fit(x_train, y_train, validation_data=(x_val, y_val), epochs=10)
-```
-
-Note: The above functions are representative; check the corresponding modules for exact function names and arguments. TODO: Add CLI wrappers and example notebooks for end-to-end runs.
-
-## Configuration
-
-Main configuration entries are stored in `src/config` and environment variables are used for secrets and API keys.
-
-- `src/config/api_config.py` — contains API endpoints and default extraction settings.
-- `src/config/settings.py` — repository-wide settings (paths, default params).
-
-Environment variables (recommended)
-
-- API_KEY or FINANCE_API_KEY — API key for data providers.
-- DATA_DIR — path where raw and processed data is stored (overrides defaults in settings).
-- MODEL_DIR — output path for model checkpoints and serialized models.
-
-Configuration file placeholders and TODOs
-
-- TODO: Add a sample `config.example.json` or `.env.example` to demonstrate expected keys and structure.
-
-## Contributing
-
-Contributions are welcome. Suggested guidelines:
-
-1. Fork the repository and create a feature branch (feature/your-feature).
-2. Write unit tests for new functionality. Place tests under `tests/`.
-3. Follow existing code style and include docstrings for new modules/functions.
-4. Open a pull request describing the change, motivation, and any backward-incompatible impacts.
-5. Ensure any added dependencies are justified and added to `requirements.txt` or `pyproject.toml`.
 
 Developer tips
 
@@ -656,6 +417,3 @@ def calculate_ep_sp_quarterly(income_statement_quarterly, market_caps):
 def calculate_agr_quarterly(balance_sheet_quarterly):
 ```
 
-# Notes
-
-Financial Statements can in fact go earlier than the earliest eod, market cap dates since they were not public then.
