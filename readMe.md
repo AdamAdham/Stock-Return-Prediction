@@ -1,7 +1,7 @@
-# Stock Return Prediction — Technical README
+# Stock Return Preditcion using MoE with Uncertainty Quantification
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](TODO)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)](TODO)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 ## Table of Contents
